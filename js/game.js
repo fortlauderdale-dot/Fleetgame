@@ -18,11 +18,11 @@ const TYPES = {
   evvan:      { label: 'Electric Van',    dept: 'Public Works',    price: 52000,  fph: 2,   wph: 0.3,  sph: 8,  gal: 0, ev: true, needs: 'evcharger' },
 };
 const DEPTS = {
-  'Sanitation':   { base: 24, station: 4 },
-  'Streets':      { base: 18, station: 3 },
-  'Public Works':    { base: 16, station: 2 },
-  'Beach': { base: 12, station: 1 },
-  'Stormwater':   { base: 6,  station: 3 },
+  'Sanitation':   { base: 24, station: 0 },
+  'Streets':      { base: 18, station: 0 },
+  'Public Works':    { base: 16, station: 0 },
+  'Beach': { base: 12, station: 0 },
+  'Stormwater':   { base: 6,  station: 0 },
 };
 const PREFIX = { pickup: 'UT', sedan: 'IN', sweeper: 'SW', sanitation: 'SN', tractor: 'BT', bucket: 'BK', pump: 'PT', evvan: 'EV' };
 const SHIFT_START = { sanitation: 4, tractor: 4, pickup: 6, bucket: 6, evvan: 6, sedan: 8, sweeper: 8, pump: 8 };
@@ -124,10 +124,6 @@ const S = {
   nextNum: {},
   stations: [
     { name: 'Fleet Yard',    res: 3800, cap: 5000, auto: false },
-    { name: 'Beach HQ',     res: 2600, cap: 4000, auto: false },
-    { name: '38th Street',  res: 3100, cap: 4000, auto: false },
-    { name: 'Plant A',    res: 1900, cap: 4000, auto: false },
-    { name: 'Executive Airport',res: 3400, cap: 4000, auto: false },
   ],
   sat: {}, demand: {},
   bays: 2, upgrades: {},
@@ -348,7 +344,8 @@ function loadGame() {
   S.budget = data.budget; S.minutes = data.minutes; S.day = data.day;
   S.bays = data.bays; rebuildGarage(); S.upgrades = data.upgrades || {};
   data.stations.forEach((st, i) => {
-    S.stations[i].res = st.res; S.stations[i].auto = st.auto;
+    if (!S.stations[i]) return; // old save had more stations than exist now — skip safely
+    S.stations[i].res = Math.min(st.res, S.stations[i].cap); S.stations[i].auto = st.auto;
     if (st.tanker != null) S.stations[i]._tanker = st.tanker; else delete S.stations[i]._tanker;
   });
   S.sat = data.sat; S.demand = data.demand;
@@ -666,17 +663,17 @@ const TEAM_LINES = [
 function yardWentDry() {
   if (S._yardDry) return; // already alerted — banner stays up, no repeat toast/sound
   S._yardDry = true;
-  toast('Yard Main ran dry. Refueling is stalled until it\'s resupplied.', 'bad');
+  toast('Fleet Fuel Island ran dry. Refueling is stalled until it\'s resupplied.', 'bad');
   sfxHorn();
   $('fuelBanner').style.display = 'block';
-  log('Yard Main ran dry. Pumps are stalled until a tanker arrives.');
+  log('Fleet Fuel Island ran dry. Pumps are stalled until a tanker arrives.');
 }
 function checkYardRecovered() {
   if (S._yardDry && S.stations[0].res > 0) {
     S._yardDry = false;
     $('fuelBanner').style.display = 'none';
-    toast('Yard Main is back online.', '');
-    log('Yard Main resupplied. Pumps are running again.');
+    toast('Fleet Fuel Island is back online.', '');
+    log('Fleet Fuel Island resupplied. Pumps are running again.');
   }
 }
 function hourTick() {
@@ -1079,7 +1076,7 @@ function sideShop() {
   }).join('');
 }
 function sideFuel() {
-  return `<div class="note">Deployed units draw from their department's field station. Yard refuels use Yard Main. Tankers deliver 3,000 gal for ${money(9000)}, six hour ETA. Auto-resupply reorders at 25% for ${money(10350)}.</div>` +
+  return `<div class="note">All fuel operations draw from Fleet Fuel Island, the city's single 18,000 gallon reserve. Tankers deliver 3,000 gal for ${money(9000)}, six hour ETA. Auto-resupply reorders at 25% for ${money(10350)}.</div>` +
     S.stations.map((st, i) => `
     <div class="stn">
       <div style="display:flex;justify-content:space-between"><b>${st.name}</b>
