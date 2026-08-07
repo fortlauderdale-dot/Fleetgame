@@ -798,7 +798,10 @@ function sideGarage() {
         ${S.upgrades[k] ? '' : `<button class="abtn pri" data-upg="${k}" style="width:100%">Install</button>`}
       </div>`).join('')}`;
 }
-function sideCity() {
+function sideLog() {
+  if (!S.log.length) return '<div class="note">Nothing logged yet.</div>';
+  return S.log.slice().reverse().map(line => `<div class="kv" style="border-bottom:1px dashed #3a434c66">${line}</div>`).join('');
+}function sideCity() {
   const avg = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
   return `<div class="kv"><span>Overall fleet rating</span><b class="${avg < 40 ? 'bad' : avg < 65 ? 'warn' : 'good'}">${Math.round(avg)}%</b></div>
     <div class="note">Weekly allocation scales with the rating. Keep departments covered by deploying their vehicles.</div>
@@ -817,7 +820,7 @@ function sideCity() {
     <div class="kv"><span>Raccoon raids foiled / lost</span><b>${S.raidsFoiled} / ${S.raidsLost}</b></div>`;
 }
 function refreshSide() {
-  const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City Status' };
+  const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City Status', log: 'Dispatch Log' };
   $('sideTitle').textContent = titles[sideMode];
   const body = $('sideBody');
   if (sideMode === 'vehicle') body.innerHTML = selected ? sideVehicle(selected) : '<div class="note">Tap a vehicle in the yard or the roster.</div>';
@@ -825,6 +828,7 @@ function refreshSide() {
   if (sideMode === 'fuel') body.innerHTML = sideFuel();
   if (sideMode === 'garage') body.innerHTML = sideGarage();
   if (sideMode === 'city') body.innerHTML = sideCity();
+  if (sideMode === 'log') body.innerHTML = sideLog();
   body.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
     const v = selected; if (!v) return;
     ({ deploy, recall, fuel: sendRefuel, garage: sendGarage, sell: sellVehicle })[b.dataset.act](v);
