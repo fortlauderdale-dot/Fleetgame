@@ -1005,7 +1005,6 @@ function sideLog() {
     <div class="kv"><span>Lifetime service delivered</span><b>${Math.round(LIFE.totalService).toLocaleString()} pts</b></div>
     <div class="kv"><span>Shifts worked</span><b>${LIFE.gamesPlayed}</b></div>
     ${LIFE.badges.length ? `<div class="note" style="margin-top:10px">Milestones earned: ${LIFE.badges.length}</div>` : ''}`;
-  ${v.age > 8 ? `<div class="note warn">Aging unit — breakdown risk climbs faster once condition drops.</div>` : ''}
 }
 function refreshSide() {
   const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City Status', log: 'Dispatch Log' };
