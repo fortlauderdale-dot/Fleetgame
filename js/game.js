@@ -436,7 +436,7 @@ function spend(n, why, cls = 'money') {
 function deploy(v) {
   if (v.status !== 'parked') return;
   if (v.fuel < 8) { toast(`${v.name} is running on fumes. Refuel first.`, 'warn'); return; }
-  v.status = 'deployed';
+  v.status = 'deployed'; v._ranDry = false;
   const from = { x: v.mesh.position.x, z: v.mesh.position.z };
   releaseSlot(v);
   setPath(v, [...laneRoute(from, { x: GATE_OUT.x, z: GATE_OUT.z })], () => { v.hidden = true; v.mesh.visible = false; });
@@ -477,6 +477,13 @@ function sendRefuel(v) {
   v.status = 'toFuel';
   setPath(v, laneRoute(from, spot), () => { v.status = 'fueling'; v.workLeft = 60; refreshUI(); });
   refreshUI();
+}
+function recallAll() {
+  const out = S.vehicles.filter(v => v.status === 'deployed');
+  if (!out.length) { toast('Nothing currently deployed.', 'warn'); return; }
+  out.forEach(recall);
+  toast(`Recalled ${out.length} vehicle${out.length > 1 ? 's' : ''}.`, '');
+  log('All units recalled to the yard.');
 }
 function sendGarage(v) {
   if (v.status !== 'parked' && v.status !== 'down') return;
@@ -621,15 +628,19 @@ function hourTick() {
         if (st.res > t.fph * t.gal * 2) st.res -= t.fph * t.gal * 0.5;
         else burn *= 1.6;
       }
-      v.fuel = Math.max(0, v.fuel - burn);
+      v.fuel = Math.max(1, v.fuel - burn);
       let wear = t.wph * (stormy ? 4 : (S.event?.kind === 'heat' ? 1.6 : 1));
       v.cond = Math.max(0, v.cond - wear);
       let pts = t.sph * (v.cond > 50 ? 1 : 0.7);
       if (S.event?.kind === 'flood' && v.dept === 'Stormwater') pts *= 3;
       S.serviceTotal += pts; LIFE.totalService += pts;
       v._pts = pts;
-      if (v.fuel <= 0) { v.status = 'returning'; log(`${v.name} ran dry in the field. Heading home on vapors.`); sfxSputter(); }
-      else {
+      if (v.fuel <= 1) {
+        if (!v._ranDry) {
+          v._ranDry = true; v.status = 'returning';
+          log(`${v.name} is running on fumes. Heading home to refuel.`); sfxSputter();
+        }
+      } else {
         const ageFactor = 1 + Math.max(0, v.age - 6) * 0.06;
         if (v.cond < 25 && Math.random() < (25 - v.cond) * 0.007 * ageFactor) {
           v.status = 'returning'; v._breaking = true;
@@ -1043,8 +1054,16 @@ function refreshSide() {
 }
 let uiDirty = true;
 function refreshUI() { uiDirty = true; }
+function refreshEventCountdown() {
+  const el = $('evCountdown');
+  if (!el) return;
+  if (!S.event) { el.textContent = ''; return; }
+  const h = Math.floor(S.event.left / 60), m = Math.floor(S.event.left % 60);
+  const verb = S.event.kind === 'watch' ? 'until landfall' : 'remaining';
+  el.textContent = `${h}h ${m}m ${verb}`;
+}
 function doRefresh() {
-  refreshHUD(); refreshFleet(); refreshSide();
+  refreshHUD(); refreshFleet(); refreshSide(); refreshEventCountdown();
   ring.visible = !!(selected && selected.mesh.visible);
   if (ring.visible) ring.position.set(selected.mesh.position.x, 0.06, selected.mesh.position.z);
   uiDirty = false;
@@ -1070,6 +1089,7 @@ document.querySelectorAll('#speedCtl button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#speedCtl button').forEach(x => x.classList.toggle('on', x === b));
 });
 $('deployAllBtn').onclick = deployAll;
+$('recallAllBtn').onclick = recallAll;
 
 /* ============================== INPUT (raycast select) ============================== */
 const ray = new THREE.Raycaster();
