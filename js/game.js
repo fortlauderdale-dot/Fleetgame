@@ -593,6 +593,22 @@ const TEAM_LINES = [
   function maybeTeamLine() {
   if (Math.random() < 0.05) log(TEAM_LINES[(Math.random() * TEAM_LINES.length) | 0]);
 }
+function yardWentDry() {
+  if (S._yardDry) return; // already alerted — banner stays up, no repeat toast/sound
+  S._yardDry = true;
+  toast('Yard Main ran dry. Refueling is stalled until it\'s resupplied.', 'bad');
+  sfxHorn();
+  $('fuelBanner').style.display = 'block';
+  log('Yard Main ran dry. Pumps are stalled until a tanker arrives.');
+}
+function checkYardRecovered() {
+  if (S._yardDry && S.stations[0].res > 0) {
+    S._yardDry = false;
+    $('fuelBanner').style.display = 'none';
+    toast('Yard Main is back online.', '');
+    log('Yard Main resupplied. Pumps are running again.');
+  }
+}
 function hourTick() {
   const stormy = S.event?.kind === 'storm';
   for (const v of S.vehicles) {
@@ -1097,12 +1113,12 @@ const MIN_PER_SEC = 10;
 function simMinute() {
   S.minutes += 1;
   hourAcc += 1;
-  if (hourAcc >= 60) { hourAcc = 0; hourTick(); maybeTeamLine() ;refreshUI(); }
+  if (hourAcc >= 60) { hourAcc = 0; hourTick(); maybeTeamLine(); checkYardRecovered(); refreshUI(); }
   if (S.minutes >= 24 * 60) { S.minutes -= 24 * 60; S.day++; dayTick(); refreshUI(); }
   if (S.event) { S.event.left -= 1; if (S.event.left <= 0) endEvent(); }
   for (const st of S.stations) if (st._tanker !== undefined) {
     st._tanker -= 1;
-    if (st._tanker <= 0) { delete st._tanker; st.res = Math.min(st.cap, st.res + 3000); log(`Tanker topped off ${st.name}.`); refreshUI(); }
+    if (st._tanker <= 0) { delete st._tanker; st.res = Math.min(st.cap, st.res + 3000); log(`Tanker topped off ${st.name}.`); checkYardRecovered(); refreshUI(); }
   }
   // returning vehicles come home
   for (const v of S.vehicles) {
@@ -1123,7 +1139,7 @@ function simMinute() {
         const add = 100 / 60;
         const gal = add * t.gal;
         if (S.stations[0].res >= gal) { S.stations[0].res -= gal; v.fuel = Math.min(100, v.fuel + add); }
-        else { v.workLeft = 0; toast('Yard Main ran dry mid-fill.', 'bad'); }
+        else { v.workLeft = 0; yardWentDry(); }
       } else v.fuel = Math.min(100, v.fuel + 100 / 90);
       if (v.workLeft <= 0 || v.fuel >= 100) {
         v.fuel = Math.min(100, v.fuel);
