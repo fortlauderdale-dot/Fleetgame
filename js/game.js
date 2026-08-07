@@ -41,20 +41,45 @@ const LIFETIME_KEY = 'fleetgame-lifetime-v1';
 const SAVE_KEY = 'fleetgame-save-v1';
 function loadLifetime() {
   try { const raw = localStorage.getItem(LIFETIME_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
-  return { bestDay: 0, bestRating: 0, totalService: 0, totalRaidsFoiled: 0, gamesPlayed: 0, badges: [] };
+  return { bestDay: 0, bestRating: 0, totalService: 0, totalRaidsFoiled: 0, gamesPlayed: 0, badges: [], onboarded: false, onboardSteps: { deploy: false, fuel: false, garage: false, city: false } };
 }
 let LIFE = loadLifetime();
+if (!LIFE.onboardSteps) LIFE.onboardSteps = { deploy: false, fuel: false, garage: false, city: false };
+if (LIFE.onboarded === undefined) LIFE.onboarded = false;
 function saveLifetime() { try { localStorage.setItem(LIFETIME_KEY, JSON.stringify(LIFE)); } catch (e) {} }
 function hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
+function markOnboard(id) {
+  if (!LIFE.onboardSteps || LIFE.onboardSteps[id]) return;
+  LIFE.onboardSteps[id] = true;
+  const allDone = Object.values(LIFE.onboardSteps).every(Boolean);
+  if (allDone) { LIFE.onboarded = true; toast('Onboarding complete. You know the ropes now.', ''); }
+  saveLifetime();
+  refreshUI();
+}
+
+const RANKS = [
+  { min: 0,      title: 'Rookie Fleet Manager' },
+  { min: 5000,   title: 'Fleet Technician' },
+  { min: 20000,  title: 'Journeyman Fleet Manager' },
+  { min: 75000,  title: 'Senior Fleet Manager' },
+  { min: 200000, title: 'Fleet Chief' },
+  { min: 500000, title: 'Legendary Fleet Chief' },
+];
+function currentRank() {
+  let r = RANKS[0];
+  for (const x of RANKS) if (LIFE.totalService >= x.min) r = x;
+  return r;
+}
 
 const MILESTONES = [
-  { id: 'day7',   check: () => S.day >= 7,              text: 'One week on the job. The gravel lot has never looked better.' },
-  { id: 'day30',  check: () => S.day >= 30,              text: 'Thirty days survived. Council is starting to trust you.' },
-  { id: 'day60',  check: () => S.day >= 60,              text: 'Sixty days in. You basically run this city now.' },
-  { id: 'svc5k',  check: () => S.serviceTotal >= 5000,   text: '5,000 service points delivered. The city noticed.' },
-  { id: 'svc20k', check: () => S.serviceTotal >= 20000,  text: '20,000 service points delivered. Legendary numbers.' },
-  { id: 'raid10', check: () => S.raidsFoiled >= 10,      text: 'Ten raccoon raids foiled. They fear the yard now.' },
+  { id: 'day7',   target: 7,     progress: () => S.day,          check: () => S.day >= 7,              text: 'One week on the job. The gravel lot has never looked better.' },
+  { id: 'day30',  target: 30,    progress: () => S.day,          check: () => S.day >= 30,             text: 'Thirty days survived. Council is starting to trust you.' },
+  { id: 'day60',  target: 60,    progress: () => S.day,          check: () => S.day >= 60,             text: 'Sixty days in. You basically run this city now.' },
+  { id: 'svc5k',  target: 5000,  progress: () => S.serviceTotal, check: () => S.serviceTotal >= 5000,  text: '5,000 service points delivered. The city noticed.' },
+  { id: 'svc20k', target: 20000, progress: () => S.serviceTotal, check: () => S.serviceTotal >= 20000, text: '20,000 service points delivered. Legendary numbers.' },
+  { id: 'raid10', target: 10,    progress: () => S.raidsFoiled,  check: () => S.raidsFoiled >= 10,     text: 'Ten raccoon raids foiled. They fear the yard now.' },
 ];
+function nextMilestone() { return MILESTONES.find(m => !S._hit.has(m.id)) || null; }
 function checkMilestones() {
   for (const m of MILESTONES) {
     if (S._hit.has(m.id)) continue;
@@ -66,6 +91,27 @@ function checkMilestones() {
       confettiBurst(); sfxMilestone();
     }
   }
+}
+
+function rollMission() {
+  const depts = Object.keys(DEPTS);
+  const dept = depts[(Math.random() * depts.length) | 0];
+  const options = [
+    { id: 'sat',     label: `Keep ${dept} above 70% for 3 days running`, kind: 'satStreak',    dept, target: 3,    progress: 0, dueDay: S.day + 6, reward: 8000 },
+    { id: 'deploy',  label: 'Deploy 6 vehicles',                          kind: 'deployCount',  target: 6,    progress: 0, dueDay: S.day + 2, reward: 3000 },
+    { id: 'raid',    label: 'Foil 2 raccoon raids',                       kind: 'raidCount',    target: 2,    progress: 0, dueDay: S.day + 4, reward: 2500 },
+    { id: 'service', label: 'Deliver 1,000 service points',               kind: 'serviceCount', target: 1000, progress: 0, dueDay: S.day + 3, reward: 4000 },
+  ];
+  return options[(Math.random() * options.length) | 0];
+}
+function checkMissionComplete() {
+  const m = S.mission;
+  if (!m || m.progress < m.target) return;
+  spend(-m.reward, `Contract complete: ${m.label}`);
+  log(`Contract complete: ${m.label}. Paid out ${money(m.reward)}.`);
+  toast(`Contract complete! ${money(m.reward)}`, 'money');
+  confettiBurst(); sfxMilestone();
+  S.mission = null;
 }
 
 /* ============================== STATE ============================== */
@@ -88,7 +134,7 @@ const S = {
   event: null, nextEventDay: 3,
   raccoon: null, raidsFoiled: 0, raidsLost: 0,
   serviceTotal: 0, bailouts: 0, over: false,
-  log: [], _hit: new Set(),
+  log: [], _hit: new Set(), mission: null,
 };
 for (const d in DEPTS) { S.sat[d] = 70; S.demand[d] = DEPTS[d].base; }
 
@@ -285,7 +331,7 @@ function saveGame() {
       raidsFoiled: S.raidsFoiled, raidsLost: S.raidsLost,
       serviceTotal: S.serviceTotal, bailouts: S.bailouts,
       vehicles: S.vehicles.map(serializeVehicle),
-      log: S.log.slice(-20), hit: Array.from(S._hit),
+      log: S.log.slice(-20), hit: Array.from(S._hit), mission: S.mission,
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch (e) { /* storage unavailable — fail silently */ }
@@ -317,7 +363,7 @@ function loadGame() {
   S.nextEventDay = data.nextEventDay;
   S.raidsFoiled = data.raidsFoiled; S.raidsLost = data.raidsLost;
   S.serviceTotal = data.serviceTotal; S.bailouts = data.bailouts;
-  S.log = data.log || []; S._hit = new Set(data.hit || []);
+  S.log = data.log || []; S._hit = new Set(data.hit || []); S.mission = data.mission || null;
 
   const RESOLVE = { arriving: 'parked', toFuel: 'fueling', toMaint: 'maint', toPark: 'parked', inbound: 'parked' };
   for (const sv of data.vehicles) {
@@ -443,6 +489,8 @@ function deploy(v) {
   releaseSlot(v);
   setPath(v, [...laneRoute(from, { x: GATE_OUT.x, z: GATE_OUT.z })], () => { v.hidden = true; v.mesh.visible = false; });
   log(`${v.name} rolled out for ${v.dept}.`);
+  markOnboard('deploy');
+  if (S.mission?.kind === 'deployCount') { S.mission.progress++; checkMissionComplete(); }
   refreshUI();
 }
 function deployAll() {
@@ -479,7 +527,7 @@ function sendRefuel(v) {
   const t = TYPES[v.type];
   if (t.ev) {
     if (!S.upgrades.evcharger) { toast('No EV charger installed yet.', 'warn'); return; }
-    v.status = 'fueling'; v.workLeft = 90; refreshUI(); return; // charges in place
+    v.status = 'fueling'; v.workLeft = 90; markOnboard('fuel'); refreshUI(); return; // charges in place
   }
   const spot = FUEL_SPOTS.find(s => !s.taken);
   if (!spot) { toast('All fuel pumps busy.', 'warn'); sfxHorn(); return; }
@@ -489,7 +537,7 @@ function sendRefuel(v) {
   spot.taken = v.id; v.spot = spot;
   const from = { x: v.mesh.position.x, z: v.mesh.position.z };
   releaseSlot(v);
-  v.status = 'toFuel';
+  v.status = 'toFuel'; markOnboard('fuel');
   setPath(v, laneRoute(from, spot), () => { v.status = 'fueling'; v.workLeft = 60; refreshUI(); });
   refreshUI();
 }
@@ -650,6 +698,7 @@ function hourTick() {
       let pts = t.sph * (v.cond > 50 ? 1 : 0.7);
       if (S.event?.kind === 'flood' && v.dept === 'Stormwater') pts *= 3;
       S.serviceTotal += pts; LIFE.totalService += pts;
+      if (S.mission?.kind === 'serviceCount') { S.mission.progress += pts; checkMissionComplete(); }
       v._pts = pts;
       if (v.status === 'deployed') {
         v._shiftTimer = (v._shiftTimer || 0) + 1;
@@ -723,6 +772,12 @@ function dayTick() {
     }
   }
   checkMilestones();
+  if (S.mission?.kind === 'satStreak') {
+    if (S.sat[S.mission.dept] >= 70) S.mission.progress++; else S.mission.progress = 0;
+    checkMissionComplete();
+  }
+  if (S.mission && S.day > S.mission.dueDay) { log(`Contract expired: ${S.mission.label}.`); S.mission = null; }
+  if (!S.mission) S.mission = rollMission();
   saveLifetime();
   saveGame();
   // event scheduling
@@ -850,6 +905,7 @@ function raccoonShoo() {
   const gain = r.crew ? 900 : 250;
   spend(-gain, 'Recovered supplies');
   S.raidsFoiled++;
+  if (S.mission?.kind === 'raidCount') { S.mission.progress++; checkMissionComplete(); }
   log(RC_LINES_SHOO[(Math.random() * RC_LINES_SHOO.length) | 0]);
   if (S.raidsFoiled === 5) { spend(-5000, 'Council "Vigilance Award"'); log('Council issued a Vigilance Award for raccoon deterrence. There was a small plaque.'); }
   r.phase = 'flee'; r.t = 0;
@@ -1051,9 +1107,22 @@ function sideGarage() {
 function sideLog() {
   if (!S.log.length) return '<div class="note">Nothing logged yet.</div>';
   return S.log.slice().reverse().map(line => `<div class="kv" style="border-bottom:1px dashed #3a434c66">${line}</div>`).join('');
-}function sideCity() {
+}
+function sideCity() {
   const avg = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
-  return `<div class="kv"><span>Overall fleet rating</span><b class="${avg < 40 ? 'bad' : avg < 65 ? 'warn' : 'good'}">${Math.round(avg)}%</b></div>
+  const onboardHTML = LIFE.onboarded ? '' : `
+    <div class="note" style="margin-bottom:6px">Getting started</div>
+    ${[['deploy','Deploy a vehicle'],['fuel','Refuel a vehicle'],['garage','Visit the Garage tab'],['city','Check the City tab']]
+      .map(([id,label]) => `<div class="kv"><span>${LIFE.onboardSteps[id] ? '✅' : '⬜'} ${label}</span></div>`).join('')}
+    <div style="height:1px;background:var(--line);margin:10px 0"></div>`;
+  const nm = nextMilestone();
+  const nmHTML = nm ? `<div class="kv"><span>Next milestone</span><b>${Math.min(nm.progress(), nm.target).toLocaleString()} / ${nm.target.toLocaleString()}</b></div>` : '';
+  const missionHTML = S.mission ? `
+    <div class="note" style="margin-top:14px">Active Contract</div>
+    <div class="kv"><span>${S.mission.label}</span><b>${Math.min(S.mission.progress, S.mission.target).toLocaleString()} / ${S.mission.target.toLocaleString()}</b></div>
+    <div class="note">Reward ${money(S.mission.reward)} · due by day ${S.mission.dueDay}</div>` : '';
+  return `${onboardHTML}
+    <div class="kv"><span>Overall fleet rating</span><b class="${avg < 40 ? 'bad' : avg < 65 ? 'warn' : 'good'}">${Math.round(avg)}%</b></div>
     <div class="note">Weekly allocation scales with the rating. Keep departments covered by deploying their vehicles.</div>
     ${Object.keys(DEPTS).map(d => {
       const deployed = S.vehicles.filter(v => v.dept === d && v.status === 'deployed').length;
@@ -1066,9 +1135,12 @@ function sideLog() {
         ${bar('', S.sat[d], 35)}
       </div>`;
     }).join('')}
+    ${missionHTML}
     <div class="kv" style="margin-top:10px"><span>Total service delivered</span><b>${Math.round(S.serviceTotal).toLocaleString()} pts</b></div>
-  <div class="kv"><span>Raccoon raids foiled / lost</span><b>${S.raidsFoiled} / ${S.raidsLost}</b></div>
+    <div class="kv"><span>Raccoon raids foiled / lost</span><b>${S.raidsFoiled} / ${S.raidsLost}</b></div>
+    ${nmHTML}
     <div class="note" style="margin-top:14px">Career record</div>
+    <div class="kv"><span>Rank</span><b class="good">${currentRank().title}</b></div>
     <div class="kv"><span>Top Fleet Rating (all-time)</span><b class="good">${Math.round(LIFE.bestRating)}%</b></div>
     <div class="kv"><span>Best day survived</span><b>${LIFE.bestDay}</b></div>
     <div class="kv"><span>Lifetime service delivered</span><b>${Math.round(LIFE.totalService).toLocaleString()} pts</b></div>
@@ -1082,8 +1154,8 @@ function refreshSide() {
   if (sideMode === 'vehicle') body.innerHTML = selected ? sideVehicle(selected) : '<div class="note">Tap a vehicle in the yard or the roster.</div>';
   if (sideMode === 'shop') body.innerHTML = sideShop();
   if (sideMode === 'fuel') body.innerHTML = sideFuel();
-  if (sideMode === 'garage') body.innerHTML = sideGarage();
-  if (sideMode === 'city') body.innerHTML = sideCity();
+  if (sideMode === 'garage') { body.innerHTML = sideGarage(); markOnboard('garage'); }
+  if (sideMode === 'city') { body.innerHTML = sideCity(); markOnboard('city'); }
   if (sideMode === 'log') body.innerHTML = sideLog();
   body.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
     const v = selected; if (!v) return;
@@ -1319,6 +1391,7 @@ function beginPlay() {
   $('ticker').style.display = 'block';
   $('tabs').style.display = 'flex';
   if (innerWidth >= 820) { openPanel('fleetPanel'); sideMode = 'city'; openPanel('sidePanel'); }
+  if (!S.mission) S.mission = rollMission();
   refreshUI();
 }
 $('startBtn').onclick = () => {
