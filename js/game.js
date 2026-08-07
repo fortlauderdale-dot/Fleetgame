@@ -148,7 +148,7 @@ preferFile('water', water.material.map).then(t => { water.material.map = t; wate
 // parking slot markings
 const slotMat = new THREE.MeshBasicMaterial({ color: 0xe8e4da, transparent: true, opacity: 0.55 });
 const SLOTS = [];
-for (const row of [-10, 4]) for (let i = 0; i < 8; i++) {
+for (const row of [-20, -6, 8, 22]) for (let i = 0; i < 10; i++) {
   const x = -46 + i * 8;
   SLOTS.push({ x, z: row, taken: null });
   const line1 = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 6), slotMat);
@@ -920,10 +920,10 @@ document.querySelectorAll('.x').forEach(b => b.onclick = () => closePanel(b.data
 
 const STATUS_LABEL = { parked: 'Parked', deployed: 'In service', returning: 'Returning', toFuel: 'To pumps',
   fueling: 'Fueling', toMaint: 'To garage', maint: 'In garage', down: 'Out of service', arriving: 'Arriving',
-  inbound: 'Returning', toPark: 'Parking' };
+  inbound: 'Returning', toPark: 'Parking', waitingSlot: 'Waiting for space' };
 const STATUS_CLS = { parked: 't-parked', deployed: 't-deployed', returning: 't-deployed', toFuel: 't-fueling',
   fueling: 't-fueling', toMaint: 't-queued', maint: 't-maint', down: 't-down', arriving: 't-parked',
-  inbound: 't-deployed', toPark: 't-parked' };
+  inbound: 't-deployed', toPark: 't-parked', waitingSlot: 't-queued' };
 
 function refreshHUD() {
   const b = $('budget');
@@ -1155,15 +1155,21 @@ function simMinute() {
   }
   // returning vehicles come home
   for (const v of S.vehicles) {
-    if (v.status === 'returning' && v.hidden && Math.random() < 0.12) {
-      const slot = freeSlotForType(v.type);
-      if (!slot) continue;
-      parkAt(v, slot);
-      const breaking = v._breaking; v._breaking = false;
-      arriveHome(v, slot, breaking ? 'down' : 'parked', () => {
-        if (breaking) { S.budget -= 800; toast(`${v.name} limped in. Tow assist ${money(-800)}.`, 'bad'); }
-      });
-      v.status = 'inbound';
+   try {
+    if (v.status === 'returning' && v.hidden) {
+      v._returnTimer = (v._returnTimer || 0) + 1;
+      if (Math.random() < 0.12 || v._returnTimer > 20) {
+        const slot = freeSlotForType(v.type);
+        if (slot) {
+          v._returnTimer = 0;
+          parkAt(v, slot);
+          const breaking = v._breaking; v._breaking = false;
+          arriveHome(v, slot, breaking ? 'down' : 'parked', () => {
+            if (breaking) { S.budget -= 800; toast(`${v.name} limped in. Tow assist ${money(-800)}.`, 'bad'); }
+          });
+          v.status = 'inbound';
+        }
+      }
     }
     if (v.status === 'fueling') {
       v.workLeft -= 1;
@@ -1179,9 +1185,13 @@ function simMinute() {
         releaseSpot(v);
         const slot = freeSlotForType(v.type);
         if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); }
-        else v.status = 'parked';
+        else v.status = 'waitingSlot';
         refreshUI();
       }
+    }
+    if (v.status === 'waitingSlot') {
+      const slot = freeSlotForType(v.type);
+      if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); refreshUI(); }
     }
     if (v.status === 'maint') {
       v.workLeft -= 1;
@@ -1189,11 +1199,14 @@ function simMinute() {
         v.cond = 100;
         const slot = freeSlotForType(v.type);
         if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); }
-        else v.status = 'parked';
+        else v.status = 'waitingSlot';
         log(`${v.name} back to 100%. Smells like fresh degreaser.`);
         refreshUI();
       }
     }
+   } catch (err) {
+     console.error('simMinute error on vehicle', v?.name, err);
+   }
   }
 }
 
