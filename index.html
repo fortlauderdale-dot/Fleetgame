@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>City Fleet Manager — Palmetto Shores Fleet Services</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#1e2328; --asphalt-2:#262c33; --panel:#20262cf2; --line:#3a434c;
+    --orange:#ff6b2c; --teal:#17948f; --sand:#efe3cb; --yellow:#f5b301;
+    --green:#3fae5c; --red:#e5484d; --ink:#e8e4da; --dim:#9aa4ad;
+    --disp:'Saira Condensed',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--asphalt);color:var(--ink);
+    font-family:var(--disp);font-size:16px}
+  #app,#c3d{position:fixed;inset:0}
+  canvas{display:block;touch-action:none}
+  button{font-family:var(--disp);cursor:pointer}
+
+  /* ---------- Title screen ---------- */
+  #title{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(1200px 500px at 50% 118%, #0c5a57cc, transparent 60%),
+      repeating-linear-gradient(-45deg, #1e2328 0 26px, #212930 26px 52px);
+    transition:opacity .6s}
+  #title.hide{opacity:0;pointer-events:none}
+  .wo{width:min(560px,92vw);background:var(--sand);color:#23282d;border:3px solid #23282d;
+    box-shadow:10px 10px 0 #0e1214cc;padding:0;position:relative}
+  .wo-stripe{height:14px;background:repeating-linear-gradient(-45deg,var(--yellow) 0 16px,#23282d 16px 32px)}
+  .wo-body{padding:22px 26px 26px}
+  .wo-eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:#5b5648;text-transform:uppercase}
+  .wo h1{margin:6px 0 2px;font-size:clamp(40px,9vw,66px);line-height:.92;font-weight:800;
+    text-transform:uppercase;letter-spacing:.01em}
+  .wo h1 em{font-style:normal;color:var(--orange)}
+  .wo-sub{font-family:var(--mono);font-size:13px;color:#4a463c;margin:8px 0 16px}
+  .wo-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-family:var(--mono);
+    font-size:12.5px;border-top:2px dashed #23282d55;border-bottom:2px dashed #23282d55;padding:12px 0;margin-bottom:18px}
+  .wo-fields b{color:#23282d}
+  .wo-btn{width:100%;padding:16px;font-size:22px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--orange);color:#fff;border:3px solid #23282d;box-shadow:5px 5px 0 #23282d}
+  .wo-btn:active{transform:translate(3px,3px);box-shadow:2px 2px 0 #23282d}
+  .wo-tip{font-family:var(--mono);font-size:11.5px;color:#6b6656;margin-top:12px;text-align:center}
+  .stamp{position:absolute;top:56px;right:18px;transform:rotate(9deg);border:3px solid var(--teal);
+    color:var(--teal);font-weight:800;font-size:14px;letter-spacing:.18em;padding:4px 10px;opacity:.85;text-transform:uppercase}
+  .paw{position:absolute;bottom:8px;right:14px;font-size:15px;opacity:.35;transform:rotate(-14deg)}
+
+  /* ---------- HUD top bar ---------- */
+  #hud{position:fixed;top:0;left:0;right:0;z-index:20;display:none;align-items:stretch;gap:1px;
+    background:var(--line);border-bottom:1px solid var(--line);font-family:var(--mono)}
+  #hud .cell{background:var(--panel);padding:7px 12px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+  #hud .lab{font-size:9.5px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+  #hud .val{font-size:15px;font-weight:600;white-space:nowrap}
+  #hud .brand{flex:1.4;overflow:hidden}
+  #hud .brand .val{font-family:var(--disp);font-weight:800;letter-spacing:.04em;text-overflow:ellipsis;overflow:hidden}
+  #budget.bad{color:var(--red)} #budget{color:var(--yellow)}
+  #speedCtl{display:flex;gap:5px;align-items:center;background:var(--panel);padding:0 10px}
+  #speedCtl button{font-family:var(--mono);font-size:12px;background:var(--asphalt-2);color:var(--dim);
+    border:1px solid var(--line);padding:6px 9px;border-radius:3px}
+  #speedCtl button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  /* ---------- Panels ---------- */
+  .panel{position:fixed;z-index:15;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    display:none;flex-direction:column;overflow:hidden;backdrop-filter:blur(4px)}
+  .panel.open{display:flex}
+  .p-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;
+    border-bottom:1px solid var(--line);background:#181d22}
+  .p-head h2{margin:0;font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+  .p-head .x{background:none;border:0;color:var(--dim);font-size:19px;line-height:1;padding:2px 6px}
+  .p-body{overflow-y:auto;padding:10px 12px;font-family:var(--mono);font-size:12.5px;-webkit-overflow-scrolling:touch}
+  #fleetPanel{top:64px;left:10px;bottom:96px;width:275px}
+  #sidePanel{top:64px;right:10px;bottom:96px;width:310px}
+
+  .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;border-radius:4px}
+  .v-item{border:1px solid var(--line);margin-bottom:7px;background:var(--asphalt-2);cursor:pointer}
+  .v-item:active{background:#2c343c}
+  .v-item .nm{font-family:var(--disp);font-weight:700;font-size:14.5px;letter-spacing:.03em}
+  .v-item .st{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+  .bars{display:flex;gap:6px;margin-top:4px}
+  .bar{flex:1;height:5px;background:#12161a;border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%}
+  .b-fuel i{background:var(--teal)} .b-cond i{background:var(--green)}
+  .b-fuel.low i{background:var(--yellow)} .b-cond.low i{background:var(--red)}
+  .tag{font-size:9.5px;padding:2px 6px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase}
+  .t-parked{background:#3a434c;color:#cfd6dc} .t-deployed{background:var(--green);color:#08130c}
+  .t-fueling{background:var(--teal);color:#e7fffd} .t-maint{background:var(--yellow);color:#231d02}
+  .t-down{background:var(--red);color:#fff} .t-queued{background:#6b5c14;color:#ffe58a}
+
+  .btnrow{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}
+  .abtn{flex:1 1 46%;padding:10px 8px;font-size:13.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    background:var(--asphalt-2);color:var(--ink);border:1px solid var(--line);border-radius:4px}
+  .abtn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+  .abtn.teal{background:var(--teal);border-color:var(--teal);color:#fff}
+  .abtn:disabled{opacity:.38;cursor:default}
+  .kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #3a434c66}
+  .kv b{color:var(--sand)}
+  .note{color:var(--dim);font-size:11.5px;margin:8px 0}
+  .shop-item,.stn,.upg{border:1px solid var(--line);background:var(--asphalt-2);border-radius:4px;padding:9px 10px;margin-bottom:8px}
+  .price{color:var(--yellow);font-weight:600}
+  .satwrap{margin-bottom:8px}
+  .sat .bar{height:7px}
+  .sat .bar i{background:var(--orange)}
+  .warn{color:var(--yellow)} .good{color:var(--green)} .bad{color:var(--red)}
+
+  /* ---------- Ticker ---------- */
+  #ticker{position:fixed;left:0;right:0;bottom:0;z-index:18;display:none;background:#12161acc;
+    border-top:2px solid var(--orange);font-family:var(--mono);font-size:12px;color:var(--sand);
+    padding:6px 10px calc(6px + env(safe-area-inset-bottom));white-space:nowrap;overflow:hidden}
+  #ticker .tk{display:inline-block;padding-right:60px}
+  #ticker .tk b{color:var(--orange)}
+
+  /* ---------- Alerts / toasts ---------- */
+  #alerts{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:30;display:flex;
+    flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(480px,94vw)}
+  .toast{font-family:var(--mono);font-size:12.5px;background:#181d22f0;border:1px solid var(--line);
+    border-left:4px solid var(--teal);padding:9px 13px;border-radius:4px;width:100%;
+    animation:pop .25s ease-out}
+  .toast.warn{border-left-color:var(--yellow)} .toast.bad{border-left-color:var(--red)}
+  .toast.money{border-left-color:var(--green)}
+  @keyframes pop{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+
+  /* ---------- Event banner ---------- */
+  #eventBanner{position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:22;display:none;
+    background:#2a1210f0;border:2px solid var(--red);border-radius:6px;padding:10px 16px;text-align:center;
+    width:min(430px,92vw)}
+  #eventBanner.watch{background:#2a2410f0;border-color:var(--yellow)}
+  #eventBanner h3{margin:0;font-size:18px;letter-spacing:.1em;text-transform:uppercase}
+  #eventBanner p{margin:4px 0 0;font-family:var(--mono);font-size:12px;color:var(--sand)}
+
+  /* ---------- Mobile tab bar ---------- */
+  #tabs{position:fixed;left:0;right:0;bottom:30px;z-index:19;display:none;justify-content:center;gap:7px;
+    padding:0 8px}
+  #tabs button{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:9px 15px}
+  #tabs button.on{background:var(--orange);border-color:var(--orange);color:#fff}
+
+  @media (max-width:820px){
+    #fleetPanel,#sidePanel{left:0;right:0;top:auto;bottom:0;width:auto;max-height:56vh;border-radius:12px 12px 0 0}
+    #hud .cell{padding:6px 8px} #hud .val{font-size:13px} #hud .lab{font-size:8.5px}
+    #hud .brand{display:none}
+    #ticker{bottom:auto;top:46px;border-top:0;border-bottom:2px solid var(--orange)}
+    #alerts{top:86px}
+    #eventBanner{top:118px}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Title screen -->
+<div id="title">
+  <div class="wo">
+    <div class="wo-stripe"></div>
+    <div class="wo-body">
+      <div class="wo-eyebrow">City of Palmetto Shores · Public Works · Work Order #001</div>
+      <h1>City <em>Fleet</em> Manager</h1>
+      <div class="wo-sub">Requested service: keep ~everything~ in this city moving.</div>
+      <div class="wo-fields">
+        <div><b>Fleet:</b> 12 units, mixed condition</div>
+        <div><b>Budget:</b> $2,847,500</div>
+        <div><b>Fuel sites:</b> 5 municipal stations</div>
+        <div><b>Season:</b> Hurricane (naturally)</div>
+        <div><b>Garage:</b> 2 bays, one squeaky lift</div>
+        <div><b>Known issue:</b> raccoons. Many.</div>
+      </div>
+      <button class="wo-btn" id="startBtn">Clock In</button>
+      <div class="wo-tip">Drag to orbit · pinch or scroll to zoom · tap a vehicle to manage it</div>
+    </div>
+    <div class="stamp">Approved</div>
+    <div class="paw">🐾</div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="cell brand"><span class="lab">Palmetto Shores</span><span class="val">FLEET SERVICES</span></div>
+  <div class="cell"><span class="lab">Budget</span><span class="val" id="budget">$0</span></div>
+  <div class="cell"><span class="lab">Fleet</span><span class="val" id="fleetCt">0/0</span></div>
+  <div class="cell"><span class="lab">Fuel avg</span><span class="val" id="fuelAvg">0%</span></div>
+  <div class="cell"><span class="lab" id="dateLab">Day 1</span><span class="val" id="clock">06:00</span></div>
+  <div id="speedCtl">
+    <button data-sp="0">II</button><button data-sp="1" class="on">1×</button>
+    <button data-sp="3">3×</button><button data-sp="8">8×</button>
+  </div>
+</div>
+
+<!-- Fleet list -->
+<div class="panel" id="fleetPanel">
+  <div class="p-head"><h2>Fleet Roster</h2><button class="x" data-close="fleetPanel">×</button></div>
+  <div class="p-body" id="fleetList"></div>
+</div>
+
+<!-- Right side panel (detail / shop / fuel / garage / city) -->
+<div class="panel" id="sidePanel">
+  <div class="p-head"><h2 id="sideTitle">Vehicle</h2><button class="x" data-close="sidePanel">×</button></div>
+  <div class="p-body" id="sideBody"></div>
+</div>
+
+<div id="eventBanner"><h3 id="evTitle"></h3><p id="evDesc"></p></div>
+<div id="alerts"></div>
+
+<div id="tabs">
+  <button data-tab="fleet">Fleet</button>
+  <button data-tab="shop">Shop</button>
+  <button data-tab="fuel">Fuel</button>
+  <button data-tab="garage">Garage</button>
+  <button data-tab="city">City</button>
+</div>
+
+<div id="ticker"><span class="tk" id="tkText"><b>DISPATCH:</b> Morning, boss. Coffee's on. Fleet's waiting.</span></div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
