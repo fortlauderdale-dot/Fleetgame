@@ -451,7 +451,20 @@ function deployAll() {
 }
 function recall(v) {
   if (v.status !== 'deployed') return;
-  v.status = 'returning';
+  if (!v.hidden) {
+    // still visibly on its way out — turn it around now instead of waiting for the round trip
+    const slot = freeSlotForType(v.type);
+    if (slot) {
+      parkAt(v, slot);
+      v.status = 'toPark';
+      setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); });
+    } else {
+      v.status = 'waitingSlot';
+    }
+    log(`${v.name} turned around before leaving the yard.`);
+  } else {
+    v.status = 'returning';
+  }
   refreshUI();
 }
 function arriveHome(v, dest, nextStatus, onDone) {
