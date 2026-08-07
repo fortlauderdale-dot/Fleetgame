@@ -34,6 +34,37 @@ const UPGRADES = {
   barriers: { label: 'Flood Barriers',        price: 60000,  desc: 'Storm and flood damage to the yard is halved.' },
 };
 const money = (n) => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
+/* ============================== LIFETIME (persists across shifts) ============================== */
+const LIFETIME_KEY = 'fleetgame-lifetime-v1';
+const SAVE_KEY = 'fleetgame-save-v1';
+function loadLifetime() {
+  try { const raw = localStorage.getItem(LIFETIME_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
+  return { bestDay: 0, bestRating: 0, totalService: 0, totalRaidsFoiled: 0, gamesPlayed: 0, badges: [] };
+}
+let LIFE = loadLifetime();
+function saveLifetime() { try { localStorage.setItem(LIFETIME_KEY, JSON.stringify(LIFE)); } catch (e) {} }
+function hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
+
+const MILESTONES = [
+  { id: 'day7',   check: () => S.day >= 7,              text: 'One week on the job. The gravel lot has never looked better.' },
+  { id: 'day30',  check: () => S.day >= 30,              text: 'Thirty days survived. Council is starting to trust you.' },
+  { id: 'day60',  check: () => S.day >= 60,              text: 'Sixty days in. You basically run this city now.' },
+  { id: 'svc5k',  check: () => S.serviceTotal >= 5000,   text: '5,000 service points delivered. The city noticed.' },
+  { id: 'svc20k', check: () => S.serviceTotal >= 20000,  text: '20,000 service points delivered. Legendary numbers.' },
+  { id: 'raid10', check: () => S.raidsFoiled >= 10,      text: 'Ten raccoon raids foiled. They fear the yard now.' },
+];
+function checkMilestones() {
+  for (const m of MILESTONES) {
+    if (S._hit.has(m.id)) continue;
+    if (m.check()) {
+      S._hit.add(m.id);
+      if (!LIFE.badges.includes(m.id)) { LIFE.badges.push(m.id); saveLifetime(); }
+      toast(m.text, '');
+      log(`Milestone: ${m.text}`);
+      confettiBurst(); sfxMilestone();
+    }
+  }
+}
 
 /* ============================== STATE ============================== */
 const S = {
@@ -55,7 +86,7 @@ const S = {
   event: null, nextEventDay: 3,
   raccoon: null, raidsFoiled: 0, raidsLost: 0,
   serviceTotal: 0, bailouts: 0, over: false,
-  log: [],
+  log: [], _hit: new Set(),
 };
 for (const d in DEPTS) { S.sat[d] = 70; S.demand[d] = DEPTS[d].base; }
 
@@ -236,6 +267,80 @@ function laneRoute(from, to) { // travel via the main lane at z=LANE_Z
 }
 function releaseSlot(v) { if (v.slot) { v.slot.taken = null; v.slot = null; } }
 function releaseSpot(v) { if (v.spot) { v.spot.taken = null; v.spot = null; } }
+/* ============================== SAVE / LOAD ============================== */
+function serializeVehicle(v) {
+  return { type: v.type, name: v.name, dept: v.dept, fuel: v.fuel, cond: v.cond, age: v.age, status: v.status, workLeft: v.workLeft || 0 };
+}
+function saveGame() {
+  try {
+    const data = {
+      v: 1, budget: S.budget, minutes: S.minutes, day: S.day,
+      bays: S.bays, upgrades: S.upgrades,
+      stations: S.stations.map(st => ({ res: st.res, auto: st.auto, tanker: st._tanker ?? null })),
+      sat: S.sat, demand: S.demand,
+      event: S.event ? { kind: S.event.kind, name: S.event.name, desc: S.event.desc, left: S.event.left, mult: S.event.mult || null, banner: S.event.banner || '' } : null,
+      nextEventDay: S.nextEventDay,
+      raidsFoiled: S.raidsFoiled, raidsLost: S.raidsLost,
+      serviceTotal: S.serviceTotal, bailouts: S.bailouts,
+      vehicles: S.vehicles.map(serializeVehicle),
+      log: S.log.slice(-20), hit: Array.from(S._hit),
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) { /* storage unavailable — fail silently */ }
+}
+function loadGame() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return false; }
+  if (!data) return false;
+  for (const v of S.vehicles) scene.remove(v.mesh);
+  S.vehicles = [];
+  for (const s of SLOTS) s.taken = null;
+  for (const s of FUEL_SPOTS) s.taken = null;
+
+  S.budget = data.budget; S.minutes = data.minutes; S.day = data.day;
+  S.bays = data.bays; rebuildGarage(); S.upgrades = data.upgrades || {};
+  data.stations.forEach((st, i) => {
+    S.stations[i].res = st.res; S.stations[i].auto = st.auto;
+    if (st.tanker != null) S.stations[i]._tanker = st.tanker; else delete S.stations[i]._tanker;
+  });
+  S.sat = data.sat; S.demand = data.demand;
+  S.event = data.event ? { ...data.event } : null;
+  if (S.event) {
+    const b = $('eventBanner');
+    b.className = S.event.banner === 'watch' ? 'watch' : '';
+    b.style.display = 'block';
+    $('evTitle').textContent = S.event.name; $('evDesc').textContent = S.event.desc;
+    if (S.event.kind === 'storm') rain.visible = true;
+  }
+  S.nextEventDay = data.nextEventDay;
+  S.raidsFoiled = data.raidsFoiled; S.raidsLost = data.raidsLost;
+  S.serviceTotal = data.serviceTotal; S.bailouts = data.bailouts;
+  S.log = data.log || []; S._hit = new Set(data.hit || []);
+
+  const RESOLVE = { arriving: 'parked', toFuel: 'fueling', toMaint: 'maint', toPark: 'parked', inbound: 'parked' };
+  for (const sv of data.vehicles) {
+    const v = makeVehicle(sv.type, { fuel: sv.fuel, cond: sv.cond, age: sv.age });
+    v.name = sv.name;
+    v.workLeft = sv.workLeft || 0;
+    const st = RESOLVE[sv.status] || sv.status;
+    if (st === 'deployed' || st === 'returning') {
+      v.status = st; v.hidden = true; v.mesh.visible = false;
+    } else if (st === 'fueling') {
+      const spot = FUEL_SPOTS.find(s => !s.taken);
+      if (spot) { spot.taken = v.id; v.spot = spot; v.mesh.position.set(spot.x, 0, spot.z); v.mesh.rotation.y = Math.PI / 2; v.status = 'fueling'; }
+      else { const slot = freeSlotForType(v.type); if (slot) parkAt(v, slot, true); v.status = 'parked'; }
+    } else if (st === 'maint') {
+      const bays = BAY_POS();
+      const spot = bays[S.vehicles.filter(x => x.status === 'maint').length % bays.length];
+      v.mesh.position.set(spot.x, 0, spot.z); v.mesh.rotation.y = Math.PI / 2; v.status = 'maint';
+    } else {
+      const slot = freeSlotForType(v.type);
+      if (slot) parkAt(v, slot, true);
+      v.status = st === 'down' ? 'down' : 'parked';
+    }
+  }
+  return true;
+}
 
 // starting fleet: 12 units, mixed condition — the yard you inherited
 const START = [
@@ -252,6 +357,56 @@ for (const [type, fuel, cond] of START) {
 
 /* ============================== UI HELPERS ============================== */
 const $ = (id) => document.getElementById(id);
+
+/* -- sound + confetti (synthesized, no audio files needed) -- */
+let actx = null;
+function ensureAudio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (actx && actx.state === 'suspended') actx.resume();
+}
+function tone(freq, start, dur, type = 'sine', vol = 0.18) {
+  if (!actx) return;
+  const osc = actx.createOscillator(), gain = actx.createGain();
+  osc.type = type; osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, actx.currentTime + start);
+  gain.gain.linearRampToValueAtTime(vol, actx.currentTime + start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + start + dur);
+  osc.connect(gain); gain.connect(actx.destination);
+  osc.start(actx.currentTime + start); osc.stop(actx.currentTime + start + dur + 0.05);
+}
+function sfxSputter() { // engine dying / ran out of gas in the field
+  ensureAudio(); if (!actx) return;
+  const notes = [180, 140, 160, 110, 90, 65];
+  let t = 0;
+  notes.forEach((f, i) => { tone(f, t, 0.09, 'sawtooth', 0.16); t += 0.09 + (i % 2 ? 0.05 : 0.02); });
+}
+function sfxHorn() { // light double-beep when the pumps are full
+  ensureAudio(); if (!actx) return;
+  tone(520, 0, 0.14, 'square', 0.14);
+  tone(520, 0.2, 0.14, 'square', 0.14);
+}
+function sfxMilestone() { // little ascending chime for achievements
+  ensureAudio(); if (!actx) return;
+  tone(523.25, 0, 0.15, 'triangle', 0.2);
+  tone(659.25, 0.12, 0.15, 'triangle', 0.2);
+  tone(783.99, 0.24, 0.25, 'triangle', 0.22);
+}
+function confettiBurst() {
+  const colors = ['#ff6b2c', '#17948f', '#f5b301', '#efe3cb', '#3fae5c'];
+  for (let i = 0; i < 36; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = `position:fixed;left:${44 + Math.random() * 12}%;top:-10px;width:7px;height:10px;
+      background:${colors[i % colors.length]};opacity:.9;z-index:60;border-radius:2px;pointer-events:none;`;
+    document.body.appendChild(el);
+    const dx = (Math.random() - 0.5) * 240, dur = 1100 + Math.random() * 700;
+    el.animate([
+      { transform: `rotate(${Math.random() * 360}deg)`, top: '-10px', opacity: 1 },
+      { transform: `translate(${dx}px, 100vh) rotate(${Math.random() * 720}deg)`, opacity: 0 },
+    ], { duration: dur, easing: 'ease-in' });
+    setTimeout(() => el.remove(), dur + 50);
+  }
+}
+
 const toastBox = $('alerts');
 function toast(msg, cls = '') {
   const d = document.createElement('div');
@@ -312,7 +467,7 @@ function sendRefuel(v) {
     v.status = 'fueling'; v.workLeft = 90; refreshUI(); return; // charges in place
   }
   const spot = FUEL_SPOTS.find(s => !s.taken);
-  if (!spot) { toast('All fuel pumps busy.', 'warn'); return; }
+  if (!spot) { toast('All fuel pumps busy.', 'warn'); sfxHorn(); return; }
   const yardStn = S.stations[0];
   const need = (100 - v.fuel) * t.gal;
   if (yardStn.res < need) { toast('Yard Main reserve too low. Order a tanker.', 'bad'); return; }
@@ -397,6 +552,16 @@ function buyUpgrade(key) {
 
 /* ============================== SIMULATION ============================== */
 function fieldStation(dept) { return S.stations[DEPTS[dept].station]; }
+const MAYOR_LINES = [
+  'The Mayor stopped by the yard and shook Drew\'s hand. Chris got a photo. It\'s already framed.',
+  'City Hall put out a press release praising Fleet Services by name. Chelsy printed it out.',
+  'The Mayor mentioned the fleet rating in a council meeting. Unprompted. Very on brand for a good week.',
+];
+const ROAST_LINES = [
+  'The Sun-Sentinel ran a piece titled "City Fleet in Disarray." Anthony is not reading it out loud again.',
+  'A city commissioner asked "what exactly is Fleet Services doing" in a public meeting. Rough.',
+  'The paper printed a photo of a broken-down sweeper. It was not a flattering angle.',
+];
 const TEAM_LINES = [
 'Chris says one of the lifts may need repair soon. This is the third time he\'s said that this week.',
   'Anthony found a raccoon paw print on a work order. It\'s on the wall now.',
@@ -445,12 +610,15 @@ function hourTick() {
       v.cond = Math.max(0, v.cond - wear);
       let pts = t.sph * (v.cond > 50 ? 1 : 0.7);
       if (S.event?.kind === 'flood' && v.dept === 'Stormwater') pts *= 3;
-      S.serviceTotal += pts;
+      S.serviceTotal += pts; LIFE.totalService += pts;
       v._pts = pts;
-      if (v.fuel <= 0) { v.status = 'returning'; log(`${v.name} ran dry in the field. Heading home on vapors.`); }
-      else if (v.cond < 25 && Math.random() < (25 - v.cond) * 0.007) {
-        v.status = 'returning'; v._breaking = true;
-        log(`${v.name} is making a sound Chris described as "expensive."`);
+      if (v.fuel <= 0) { v.status = 'returning'; log(`${v.name} ran dry in the field. Heading home on vapors.`); sfxSputter(); }
+      else {
+        const ageFactor = 1 + Math.max(0, v.age - 6) * 0.06;
+        if (v.cond < 25 && Math.random() < (25 - v.cond) * 0.007 * ageFactor) {
+          v.status = 'returning'; v._breaking = true;
+          log(`${v.name} is making a sound Chris described as "expensive."`);
+        }
       }
       if (stormy && Math.random() < (S.upgrades.barriers ? 0.02 : 0.045)) {
         v.cond = Math.max(0, v.cond - 25);
@@ -483,17 +651,28 @@ function hourTick() {
   }
   if (stormy) for (const st of S.stations) st.res = Math.max(0, st.res - 40); // generators
 }
-
 function dayTick() {
   for (const d in DEPTS) S.demand[d] = Math.round(DEPTS[d].base * (0.75 + Math.random() * 0.55));
-  spend(2400, null); // payroll & Public Works, silent
-  log(`Day ${S.day}. Payroll and Public Works cleared (${money(2400)}).`);
+  spend(2400, null); // payroll & utilities, silent
+  log(`Day ${S.day}. Payroll and utilities cleared (${money(2400)}).`);
+  const avgRating = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
+  if (avgRating > LIFE.bestRating) LIFE.bestRating = avgRating;
+  if (S.day > LIFE.bestDay) LIFE.bestDay = S.day;
   if (S.day % 7 === 0) {
-    const avg = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
-    const alloc = Math.round(90000 * (0.4 + avg / 100));
-    spend(-alloc, `Weekly city allocation (fleet rating ${Math.round(avg)}%)`);
+    const alloc = Math.round(90000 * (0.4 + avgRating / 100));
+    spend(-alloc, `Weekly city allocation (fleet rating ${Math.round(avgRating)}%)`);
     log(`Council wired the weekly allocation: ${money(alloc)}.`);
+    if (avgRating >= 85) {
+      toast('The Mayor gave Fleet Services a public shoutout this week.', 'money');
+      log(MAYOR_LINES[(Math.random() * MAYOR_LINES.length) | 0]);
+    } else if (avgRating <= 30) {
+      toast('The paper ran a piece on Fleet Services. Not a kind one.', 'bad');
+      log(ROAST_LINES[(Math.random() * ROAST_LINES.length) | 0]);
+    }
   }
+  checkMilestones();
+  saveLifetime();
+  saveGame();
   // event scheduling
   if (!S.event && S.day >= S.nextEventDay) scheduleEvent();
   // budget trouble
@@ -504,7 +683,6 @@ function dayTick() {
   }
   if (S.budget > -50000) S._warned = false;
 }
-
 /* ============================== EVENTS ============================== */
 function scheduleEvent() {
   const roll = Math.random();
@@ -671,6 +849,7 @@ function gameOver() {
     return;
   }
   S.over = true; S.speed = 0;
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
   const div = document.createElement('div');
   div.id = 'title';
   div.innerHTML = `<div class="wo"><div class="wo-stripe"></div><div class="wo-body">
@@ -680,6 +859,7 @@ function gameOver() {
     <div class="wo-fields">
       <div><b>Days survived:</b> ${S.day}</div><div><b>Service delivered:</b> ${Math.round(S.serviceTotal).toLocaleString()} pts</div>
       <div><b>Raids foiled:</b> ${S.raidsFoiled}</div><div><b>Raids lost:</b> ${S.raidsLost}</div>
+      <div><b>Best day ever:</b> ${LIFE.bestDay}</div><div><b>Top fleet rating:</b> ${Math.round(LIFE.bestRating)}%</div>
     </div>
     <button class="wo-btn" onclick="location.reload()">Try Again</button>
   </div></div>`;
@@ -750,6 +930,7 @@ function sideVehicle(v) {
     <div class="kv"><span>Condition</span><b class="${v.cond < 30 ? 'bad' : v.cond < 60 ? 'warn' : 'good'}">${Math.round(v.cond)}%</b></div>
     <div class="kv"><span>Age</span><b>${v.age.toFixed(1)} yrs</b></div>
     <div class="kv"><span>Auction value</span><b class="price">${money(val)}</b></div>
+    ${v.age > 8 ? `<div class="note warn">Aging unit — breakdown risk climbs faster once condition drops.</div>` : ''}
     <div class="btnrow">
       ${v.status === 'parked' ? `<button class="abtn pri" data-act="deploy">Deploy</button>` : ''}
       ${['deployed'].includes(v.status) ? `<button class="abtn pri" data-act="recall">Recall</button>` : ''}
@@ -817,7 +998,14 @@ function sideLog() {
       </div>`;
     }).join('')}
     <div class="kv" style="margin-top:10px"><span>Total service delivered</span><b>${Math.round(S.serviceTotal).toLocaleString()} pts</b></div>
-    <div class="kv"><span>Raccoon raids foiled / lost</span><b>${S.raidsFoiled} / ${S.raidsLost}</b></div>`;
+  <div class="kv"><span>Raccoon raids foiled / lost</span><b>${S.raidsFoiled} / ${S.raidsLost}</b></div>
+    <div class="note" style="margin-top:14px">Career record</div>
+    <div class="kv"><span>Top Fleet Rating (all-time)</span><b class="good">${Math.round(LIFE.bestRating)}%</b></div>
+    <div class="kv"><span>Best day survived</span><b>${LIFE.bestDay}</b></div>
+    <div class="kv"><span>Lifetime service delivered</span><b>${Math.round(LIFE.totalService).toLocaleString()} pts</b></div>
+    <div class="kv"><span>Shifts worked</span><b>${LIFE.gamesPlayed}</b></div>
+    ${LIFE.badges.length ? `<div class="note" style="margin-top:10px">Milestones earned: ${LIFE.badges.length}</div>` : ''}`;
+  ${v.age > 8 ? `<div class="note warn">Aging unit — breakdown risk climbs faster once condition drops.</div>` : ''}
 }
 function refreshSide() {
   const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City Status', log: 'Dispatch Log' };
@@ -1034,16 +1222,36 @@ addEventListener('resize', () => {
 });
 
 /* ============================== START ============================== */
-$('startBtn').onclick = () => {
+function beginPlay() {
   $('title').classList.add('hide');
   started = true;
   $('hud').style.display = 'flex';
   $('ticker').style.display = 'block';
   $('tabs').style.display = 'flex';
   if (innerWidth >= 820) { openPanel('fleetPanel'); sideMode = 'city'; openPanel('sidePanel'); }
+  refreshUI();
+}
+$('startBtn').onclick = () => {
+  ensureAudio();
+  LIFE.gamesPlayed++; saveLifetime();
+  beginPlay();
   log('Shift started. Twelve units on the lot, half of them held together with hope.');
   log('Anthony says the sweeper "sounds haunted." Noted.');
   toast('Welcome, boss. Deploy vehicles to cover departments. Watch the fuel.', '');
-  refreshUI();
+};
+if (hasSave()) {
+  const cbtn = document.createElement('button');
+  cbtn.className = 'wo-btn'; cbtn.style.marginTop = '8px'; cbtn.style.background = 'var(--teal)';
+  cbtn.textContent = 'Continue Shift';
+  cbtn.onclick = () => {
+    ensureAudio();
+    loadGame();
+    beginPlay();
+    log('Picked up right where you left off.');
+    toast('Shift resumed.', '');
+  };
+  $('startBtn').insertAdjacentElement('afterend', cbtn);
+}
+addEventListener('beforeunload', () => { if (started && !S.over) saveGame(); });
 };
 $('deployAllBtn').onclick = deployAll;
