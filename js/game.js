@@ -954,7 +954,11 @@ function bar(cls, val, lowAt) {
 }
 function refreshFleet() {
   const el = $('fleetList');
-  el.innerHTML = S.vehicles.map(v => `
+  const busyBays = S.vehicles.filter(x => x.status === 'maint').length;
+  el.innerHTML = S.vehicles.map(v => {
+    const canFuel = v.status === 'parked' && v.fuel <= 95;
+    const canGarage = (v.status === 'parked' || v.status === 'down') && busyBays < S.bays;
+    return `
     <div class="v-item" data-v="${v.id}" style="padding:8px 9px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="nm">${v.name}</span>
@@ -962,10 +966,23 @@ function refreshFleet() {
       </div>
       <div class="st" style="color:var(--dim)">${v.dept}</div>
       <div class="bars">${bar('b-fuel', v.fuel, 25)}${bar('b-cond', v.cond, 30)}</div>
-    </div>`).join('');
+      <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
+        ${v.status === 'parked' ? `<button class="qa pri" data-qa="deploy" data-v="${v.id}">Deploy</button>` : ''}
+        ${v.status === 'deployed' ? `<button class="qa pri" data-qa="recall" data-v="${v.id}">Recall</button>` : ''}
+        ${canFuel ? `<button class="qa teal" data-qa="fuel" data-v="${v.id}">Fuel</button>` : ''}
+        ${canGarage ? `<button class="qa" data-qa="garage" data-v="${v.id}">${(v.status === 'down' || v.cond <= 5) ? 'Repair' : 'Service'}</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
   el.querySelectorAll('.v-item').forEach(d => d.onclick = () => {
     const v = S.vehicles.find(x => x.id == d.dataset.v);
     select(v);
+  });
+  el.querySelectorAll('[data-qa]').forEach(b => b.onclick = (e) => {
+    e.stopPropagation();
+    const v = S.vehicles.find(x => x.id == b.dataset.v);
+    if (!v) return;
+    ({ deploy, recall, fuel: sendRefuel, garage: sendGarage })[b.dataset.qa](v);
   });
 }
 function sideVehicle(v) {
