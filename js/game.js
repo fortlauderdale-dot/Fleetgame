@@ -8,14 +8,14 @@ import { buildGarage, buildFuelCanopy, buildPalm, buildDumpster, buildLightPole,
 
 /* ============================== DATA ============================== */
 const TYPES = {
-  pickup:     { label: 'Utility Pickup',  dept: 'Public Works',    price: 38000,  fph: 5,   wph: 0.5,  sph: 6,  gal: 0.35 },
-  sedan:      { label: 'Inspector Sedan', dept: 'Streets',      price: 26000,  fph: 3.5, wph: 0.35, sph: 4,  gal: 0.25 },
-  sweeper:    { label: 'Street Sweeper',  dept: 'Stormwater',      price: 120000, fph: 9,   wph: 0.8,  sph: 14, gal: 0.7 },
-  sanitation: { label: 'Garbage Truck',dept: 'Sanitation',   price: 180000, fph: 11,  wph: 0.9,  sph: 20, gal: 0.9 },
-  tractor:    { label: 'Beach Tractor',   dept: 'Beach', price: 95000,  fph: 8,   wph: 1.0,  sph: 12, gal: 0.6 },
-  bucket:     { label: 'Bucket Truck',    dept: 'Public Works',    price: 145000, fph: 8,   wph: 0.6,  sph: 15, gal: 0.7 },
-  pump:       { label: 'Vac Truck',      dept: 'Stormwater',   price: 160000, fph: 9,   wph: 0.7,  sph: 14, gal: 0.8 },
-  evvan:      { label: 'Electric Van',    dept: 'Public Works',    price: 52000,  fph: 4,   wph: 0.3,  sph: 8,  gal: 0, ev: true, needs: 'evcharger' },
+  pickup:     { label: 'Utility Pickup',  dept: 'Public Works',    price: 38000,  fph: 2,   wph: 0.5,  sph: 6,  gal: 0.35 },
+  sedan:      { label: 'Inspector Sedan', dept: 'Streets',      price: 26000,  fph: 1, wph: 0.35, sph: 4,  gal: 0.25 },
+  sweeper:    { label: 'Street Sweeper',  dept: 'Stormwater',      price: 120000, fph: 4,   wph: 0.8,  sph: 14, gal: 0.7 },
+  sanitation: { label: 'Garbage Truck',dept: 'Sanitation',   price: 180000, fph: 5,  wph: 0.9,  sph: 20, gal: 0.9 },
+  tractor:    { label: 'Beach Tractor',   dept: 'Beach', price: 95000,  fph: 3,   wph: 1.0,  sph: 12, gal: 0.6 },
+  bucket:     { label: 'Bucket Truck',    dept: 'Public Works',    price: 145000, fph: 3,   wph: 0.6,  sph: 15, gal: 0.7 },
+  pump:       { label: 'Vac Truck',      dept: 'Stormwater',   price: 160000, fph: 2,   wph: 0.7,  sph: 14, gal: 0.8 },
+  evvan:      { label: 'Electric Van',    dept: 'Public Works',    price: 52000,  fph: 2,   wph: 0.3,  sph: 8,  gal: 0, ev: true, needs: 'evcharger' },
 };
 const DEPTS = {
   'Sanitation':   { base: 24, station: 4 },
@@ -44,11 +44,11 @@ const S = {
   vehicles: [],
   nextNum: {},
   stations: [
-    { name: 'Yard Main',    res: 3800, cap: 5000, auto: false },
+    { name: 'Fleet Yard',    res: 3800, cap: 5000, auto: false },
     { name: 'Beach HQ',     res: 2600, cap: 4000, auto: false },
-    { name: 'North Depot',  res: 3100, cap: 4000, auto: false },
-    { name: 'Riverside',    res: 1900, cap: 4000, auto: false },
-    { name: 'Airport Annex',res: 3400, cap: 4000, auto: false },
+    { name: '38th Street',  res: 3100, cap: 4000, auto: false },
+    { name: 'Plant A',    res: 1900, cap: 4000, auto: false },
+    { name: 'Executive Airport',res: 3400, cap: 4000, auto: false },
   ],
   sat: {}, demand: {},
   bays: 2, upgrades: {},
