@@ -1252,5 +1252,4 @@ if (hasSave()) {
   $('startBtn').insertAdjacentElement('afterend', cbtn);
 }
 addEventListener('beforeunload', () => { if (started && !S.over) saveGame(); });
-};
 $('deployAllBtn').onclick = deployAll;
