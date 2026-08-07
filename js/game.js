@@ -8,7 +8,7 @@ import { buildGarage, buildFuelCanopy, buildPalm, buildDumpster, buildLightPole,
 
 /* ============================== DATA ============================== */
 const TYPES = {
-  pickup:     { label: 'Utility Pickup',  dept: 'Public Works',    price: 38000,  fph: 2,   wph: 0.5,  sph: 6,  gal: 0.35 },
+  pickup:     { label: 'Utility Truck',  dept: 'Public Works',    price: 38000,  fph: 2,   wph: 0.5,  sph: 6,  gal: 0.35 },
   sedan:      { label: 'Inspector Sedan', dept: 'Streets',      price: 26000,  fph: 1, wph: 0.35, sph: 4,  gal: 0.25 },
   sweeper:    { label: 'Street Sweeper',  dept: 'Stormwater',      price: 120000, fph: 4,   wph: 0.8,  sph: 14, gal: 0.7 },
   sanitation: { label: 'Garbage Truck',dept: 'Sanitation',   price: 180000, fph: 5,  wph: 0.9,  sph: 20, gal: 0.9 },
@@ -87,7 +87,7 @@ function checkMilestones() {
       S._hit.add(m.id);
       if (!LIFE.badges.includes(m.id)) { LIFE.badges.push(m.id); saveLifetime(); }
       toast(m.text, '');
-      log(`Milestone: ${m.text}`);
+      log(`Milestone: ${m.text}`, 'flavor');
       confettiBurst(); sfxMilestone();
     }
   }
@@ -108,7 +108,7 @@ function checkMissionComplete() {
   const m = S.mission;
   if (!m || m.progress < m.target) return;
   spend(-m.reward, `Contract complete: ${m.label}`);
-  log(`Contract complete: ${m.label}. Paid out ${money(m.reward)}.`);
+  log(`Contract complete: ${m.label}. Paid out ${money(m.reward)}.`, 'money');
   toast(`Contract complete! ${money(m.reward)}`, 'money');
   confettiBurst(); sfxMilestone();
   S.mission = null;
@@ -360,7 +360,7 @@ function loadGame() {
   S.nextEventDay = data.nextEventDay;
   S.raidsFoiled = data.raidsFoiled; S.raidsLost = data.raidsLost;
   S.serviceTotal = data.serviceTotal; S.bailouts = data.bailouts;
-  S.log = data.log || []; S._hit = new Set(data.hit || []); S.mission = data.mission || null;
+  S.log = (data.log || []).map(x => typeof x === 'string' ? { msg: x, type: 'normal' } : x); S._hit = new Set(data.hit || []); S.playerName = data.playerName || 'Fleet Manager'; S.mission = data.mission || null;
 
   const RESOLVE = { arriving: 'parked', toFuel: 'fueling', toMaint: 'maint', toPark: 'parked', inbound: 'parked' };
   for (const sv of data.vehicles) {
@@ -461,15 +461,17 @@ function toast(msg, cls = '') {
   setTimeout(() => d.remove(), 4800);
   while (toastBox.children.length > 4) toastBox.firstChild.remove();
 }
-function log(msg) {
-  S.log.push(msg);
+function log(msg, type = 'normal') {
+  S.log.push({ msg, type });
   if (S.log.length > 40) S.log.shift();
 }
 let tickerIdx = 0;
 setInterval(() => {
   if (!started || !S.log.length) return;
   tickerIdx = (tickerIdx + 1) % S.log.length;
-  $('tkText').innerHTML = '<b>DISPATCH:</b> ' + S.log[S.log.length - 1 - (tickerIdx % Math.min(5, S.log.length))];
+  const entry = S.log[S.log.length - 1 - (tickerIdx % Math.min(5, S.log.length))];
+  const cls = entry.type === 'money' ? 'good' : entry.type === 'flavor' ? 'warn' : '';
+  $('tkText').innerHTML = `<b>DISPATCH:</b> <span class="${cls}">${entry.msg}</span>`;
 }, 6000);
 
 function spend(n, why, cls = 'money') {
@@ -485,7 +487,6 @@ function deploy(v) {
   const from = { x: v.mesh.position.x, z: v.mesh.position.z };
   releaseSlot(v);
   setPath(v, [...laneRoute(from, { x: GATE_OUT.x, z: GATE_OUT.z })], () => { v.hidden = true; v.mesh.visible = false; });
-  log(`${v.name} rolled out for ${v.dept}.`);
   markOnboard('deploy');
   if (S.mission?.kind === 'deployCount') { S.mission.progress++; checkMissionComplete(); }
   refreshUI();
@@ -575,7 +576,7 @@ function sellVehicle(v) {
   scene.remove(v.mesh);
   S.vehicles = S.vehicles.filter(x => x !== v);
   if (selected === v) select(null);
-  log(`${v.name} sold at auction for ${money(val)}.`);
+  log(`${v.name} sold at auction for ${money(val)}.`, 'money');
   refreshUI();
 }
 function buyVehicle(type) {
@@ -613,7 +614,7 @@ function buyUpgrade(key) {
   if (key === 'bay3') { S.bays = 3; rebuildGarage(); }
   if (key === 'bay4') { S.bays = 4; rebuildGarage(); }
   log(`${u.label} installed.`);
-  if (key === 'latches') log('The dumpster raccoons held what appeared to be a planning meeting.');
+  if (key === 'latches') log('The dumpster raccoons held what appeared to be a planning meeting.', 'flavor');
   refreshUI();
 }
 
@@ -658,7 +659,7 @@ const TEAM_LINES = [
   'Anthony made a short joke about Derek. Drew gave him "the look." Anthony has built up a tolerance to The Look.',
 ];
   function maybeTeamLine() {
-  if (Math.random() < 0.05) log(TEAM_LINES[(Math.random() * TEAM_LINES.length) | 0]);
+  if (Math.random() < 0.05) log(TEAM_LINES[(Math.random() * TEAM_LINES.length) | 0], 'flavor');
 }
 function yardWentDry() {
   if (S._yardDry) return; // already alerted — banner stays up, no repeat toast/sound
@@ -701,7 +702,6 @@ function hourTick() {
         v._shiftTimer = (v._shiftTimer || 0) + 1;
         if (v._shiftTimer >= SHIFT_HOURS) {
           v.status = 'returning';
-          log(`${v.name}'s shift ended. Heading home for the day.`);
         }
       }
       if (v.fuel <= 1) {
@@ -759,13 +759,13 @@ function dayTick() {
   if (S.day % 7 === 0) {
     const alloc = Math.round(90000 * (0.4 + avgRating / 100));
     spend(-alloc, `Weekly city allocation (fleet rating ${Math.round(avgRating)}%)`);
-    log(`Council wired the weekly allocation: ${money(alloc)}.`);
+    log(`Council wired the weekly allocation: ${money(alloc)}.`, 'money');
     if (avgRating >= 85) {
       toast('The Mayor gave Fleet Services a public shoutout this week.', 'money');
-      log(MAYOR_LINES[(Math.random() * MAYOR_LINES.length) | 0]);
+      log(MAYOR_LINES[(Math.random() * MAYOR_LINES.length) | 0], 'flavor');
     } else if (avgRating <= 30) {
       toast('The paper ran a piece on Fleet Services. Not a kind one.', 'bad');
-      log(ROAST_LINES[(Math.random() * ROAST_LINES.length) | 0]);
+      log(ROAST_LINES[(Math.random() * ROAST_LINES.length) | 0], 'flavor');
     }
   }
   checkMilestones();
@@ -838,8 +838,8 @@ function endEvent() {
   }
   if (ev.kind === 'parade') {
     const cov = ['Streets', 'Beach'].every(d => S.sat[d] > 62);
-    if (cov) { spend(-15000, 'Parade support bonus'); log('Mayor personally thanked Fleet Services. In public. On camera.'); }
-    else log('Parade wrapped. The marching band had to detour around a stalled sweeper.');
+    if (cov) { spend(-15000, 'Parade support bonus'); log('Mayor personally thanked Fleet Services. In public. On camera.', 'flavor'); }
+    else log('Parade wrapped. The marching band had to detour around a stalled sweeper.', 'flavor');
   }
   $('eventBanner').style.display = 'none';
   S.event = null;
@@ -883,7 +883,7 @@ function maybeSpawnRaccoon() {
     : parked[(Math.random() * parked.length) | 0].mesh.position.clone();
   S.raccoon = { group, members, crew, phase: 'in', t: 0, from: dumpster.position.clone(), to: target,
     dur: (S.upgrades.latches ? 15 : 10) + Math.random() * 4 };
-  if (crew) { toast('Heist crew on the lot. Three raccoons. One has a hat.', 'warn'); log('THREE raccoons spotted moving in formation. The one in front has a little hat.'); }
+  if (crew) { toast('Heist crew on the lot. Three raccoons. One has a hat.', 'warn'); log('THREE raccoons spotted moving in formation. The one in front has a little hat.', 'flavor'); }
   else toast('A raccoon is sneaking across the yard. Tap it!', 'warn');
 }
 function raccoonSteal() {
@@ -894,7 +894,7 @@ function raccoonSteal() {
   S.stations[0].res = Math.max(0, S.stations[0].res - 60 * mult);
   S.raidsLost++;
   toast(`Raccoon raid: ${money(-loss)} and fuel gone.`, 'bad');
-  log(RC_LINES_STEAL[(Math.random() * RC_LINES_STEAL.length) | 0]);
+  log(RC_LINES_STEAL[(Math.random() * RC_LINES_STEAL.length) | 0], 'flavor');
   refreshUI();
 }
 function raccoonShoo() {
@@ -903,8 +903,8 @@ function raccoonShoo() {
   spend(-gain, 'Recovered supplies');
   S.raidsFoiled++;
   if (S.mission?.kind === 'raidCount') { S.mission.progress++; checkMissionComplete(); }
-  log(RC_LINES_SHOO[(Math.random() * RC_LINES_SHOO.length) | 0]);
-  if (S.raidsFoiled === 5) { spend(-5000, 'Council "Vigilance Award"'); log('Council issued a Vigilance Award for raccoon deterrence. There was a small plaque.'); }
+  log(RC_LINES_SHOO[(Math.random() * RC_LINES_SHOO.length) | 0], 'flavor');
+  if (S.raidsFoiled === 5) { spend(-5000, 'Council "Vigilance Award"'); log('Council issued a Vigilance Award for raccoon deterrence. There was a small plaque.', 'flavor'); }
   r.phase = 'flee'; r.t = 0;
   r.from = r.group.position.clone();
   r.to = dumpster.position.clone();
@@ -950,7 +950,7 @@ function gameOver() {
     S.budget += 200000;
     for (const d in S.sat) S.sat[d] = Math.max(10, S.sat[d] - 20);
     toast('Emergency council bailout: +$200,000. Fleet rating took the hit.', 'bad');
-    log('Council bailed out Fleet Services. The meeting was described as "tense."');
+    log('Council bailed out Fleet Services. The meeting was described as "tense."', 'flavor');
     return;
   }
   S.over = true; S.speed = 0;
@@ -1103,7 +1103,10 @@ function sideGarage() {
 }
 function sideLog() {
   if (!S.log.length) return '<div class="note">Nothing logged yet.</div>';
-  return S.log.slice().reverse().map(line => `<div class="kv" style="border-bottom:1px dashed #3a434c66">${line}</div>`).join('');
+  return S.log.slice().reverse().map(line => {
+    const cls = line.type === 'money' ? 'good' : line.type === 'flavor' ? 'warn' : '';
+    return `<div class="kv ${cls}" style="border-bottom:1px dashed #3a434c66">${line.msg}</div>`;
+  }).join('');
 }
 function sideCity() {
   const avg = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
@@ -1298,7 +1301,6 @@ function simMinute() {
         const slot = freeSlotForType(v.type);
         if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); }
         else v.status = 'waitingSlot';
-        log(`${v.name} back to 100%. Smells like fresh degreaser.`);
         refreshUI();
       }
     }
@@ -1395,8 +1397,8 @@ $('startBtn').onclick = () => {
   ensureAudio();
   LIFE.gamesPlayed++; saveLifetime();
   beginPlay();
-  log('Shift started. Twelve units on the lot, half of them held together with hope.');
-  log('Anthony says the sweeper "sounds haunted." Noted.');
+  log('Shift started. Twelve units on the lot, half of them held together with hope.', 'flavor');
+  log('Anthony says the sweeper "sounds haunted." Noted.', 'flavor');
   toast('Welcome, boss. Deploy vehicles to cover departments. Watch the fuel.', '');
 };
 if (hasSave()) {
