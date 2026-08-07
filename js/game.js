@@ -116,7 +116,7 @@ function checkMissionComplete() {
 
 /* ============================== STATE ============================== */
 const S = {
-  budget: 2847500,
+  budget: 300000,
   minutes: 6 * 60, // day starts 06:00
   day: 1,
   speed: 1,
