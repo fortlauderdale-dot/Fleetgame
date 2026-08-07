@@ -200,7 +200,10 @@
 <!-- Fleet list -->
 <div class="panel" id="fleetPanel">
 <div class="p-head"><h2>Fleet Roster</h2><button class="x" data-close="fleetPanel">×</button></div>
-  <div style="padding:8px 12px 0"><button class="abtn pri" id="deployAllBtn" style="width:100%">Deploy All</button></div>
+  <div style="padding:8px 12px 0;display:flex;gap:6px">
+    <button class="abtn pri" id="deployAllBtn" style="flex:1">Deploy All</button>
+    <button class="abtn teal" id="recallAllBtn" style="flex:1">Recall All</button>
+  </div>
   <div class="p-body" id="fleetList"></div>
 </div>
 
@@ -210,7 +213,7 @@
   <div class="p-body" id="sideBody"></div>
 </div>
 
-<div id="eventBanner"><h3 id="evTitle"></h3><p id="evDesc"></p></div>
+<div id="eventBanner"><h3 id="evTitle"></h3><p id="evDesc"></p><p id="evCountdown" style="margin-top:4px;font-weight:700;letter-spacing:.04em"></p></div>
   <div id="fuelBanner"><h3>Yard Main Is Dry</h3><p>Refueling is stalled. Order a tanker to get pumps running again.</p></div>
 <div id="alerts"></div>
 
