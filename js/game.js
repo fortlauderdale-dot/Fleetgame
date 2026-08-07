@@ -993,3 +993,4 @@ $('startBtn').onclick = () => {
   toast('Welcome, boss. Deploy vehicles to cover departments. Watch the fuel.', '');
   refreshUI();
 };
+$('deployAllBtn').onclick = deployAll;
