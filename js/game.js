@@ -8,20 +8,20 @@ import { buildGarage, buildFuelCanopy, buildPalm, buildDumpster, buildLightPole,
 
 /* ============================== DATA ============================== */
 const TYPES = {
-  pickup:     { label: 'Utility Pickup',  dept: 'Utilities',    price: 38000,  fph: 5,   wph: 0.5,  sph: 6,  gal: 0.35 },
+  pickup:     { label: 'Utility Pickup',  dept: 'Public Works',    price: 38000,  fph: 5,   wph: 0.5,  sph: 6,  gal: 0.35 },
   sedan:      { label: 'Inspector Sedan', dept: 'Streets',      price: 26000,  fph: 3.5, wph: 0.35, sph: 4,  gal: 0.25 },
-  sweeper:    { label: 'Street Sweeper',  dept: 'Streets',      price: 120000, fph: 9,   wph: 0.8,  sph: 14, gal: 0.7 },
-  sanitation: { label: 'Sanitation Truck',dept: 'Sanitation',   price: 180000, fph: 11,  wph: 0.9,  sph: 20, gal: 0.9 },
-  tractor:    { label: 'Beach Tractor',   dept: 'Beach Patrol', price: 95000,  fph: 8,   wph: 1.0,  sph: 12, gal: 0.6 },
-  bucket:     { label: 'Bucket Truck',    dept: 'Utilities',    price: 145000, fph: 8,   wph: 0.6,  sph: 15, gal: 0.7 },
-  pump:       { label: 'Pump Truck',      dept: 'Stormwater',   price: 160000, fph: 9,   wph: 0.7,  sph: 14, gal: 0.8 },
-  evvan:      { label: 'Electric Van',    dept: 'Utilities',    price: 52000,  fph: 4,   wph: 0.3,  sph: 8,  gal: 0, ev: true, needs: 'evcharger' },
+  sweeper:    { label: 'Street Sweeper',  dept: 'Stormwater',      price: 120000, fph: 9,   wph: 0.8,  sph: 14, gal: 0.7 },
+  sanitation: { label: 'Garbage Truck',dept: 'Sanitation',   price: 180000, fph: 11,  wph: 0.9,  sph: 20, gal: 0.9 },
+  tractor:    { label: 'Beach Tractor',   dept: 'Beach', price: 95000,  fph: 8,   wph: 1.0,  sph: 12, gal: 0.6 },
+  bucket:     { label: 'Bucket Truck',    dept: 'Public Works',    price: 145000, fph: 8,   wph: 0.6,  sph: 15, gal: 0.7 },
+  pump:       { label: 'Vac Truck',      dept: 'Stormwater',   price: 160000, fph: 9,   wph: 0.7,  sph: 14, gal: 0.8 },
+  evvan:      { label: 'Electric Van',    dept: 'Public Works',    price: 52000,  fph: 4,   wph: 0.3,  sph: 8,  gal: 0, ev: true, needs: 'evcharger' },
 };
 const DEPTS = {
   'Sanitation':   { base: 24, station: 4 },
   'Streets':      { base: 18, station: 3 },
-  'Utilities':    { base: 16, station: 2 },
-  'Beach Patrol': { base: 12, station: 1 },
+  'Public Works':    { base: 16, station: 2 },
+  'Beach': { base: 12, station: 1 },
   'Stormwater':   { base: 6,  station: 3 },
 };
 const PREFIX = { pickup: 'UT', sedan: 'IN', sweeper: 'SW', sanitation: 'SN', tractor: 'BT', bucket: 'BK', pump: 'PT', evvan: 'EV' };
@@ -431,8 +431,8 @@ function hourTick() {
 
 function dayTick() {
   for (const d in DEPTS) S.demand[d] = Math.round(DEPTS[d].base * (0.75 + Math.random() * 0.55));
-  spend(2400, null); // payroll & utilities, silent
-  log(`Day ${S.day}. Payroll and utilities cleared (${money(2400)}).`);
+  spend(2400, null); // payroll & Public Works, silent
+  log(`Day ${S.day}. Payroll and Public Works cleared (${money(2400)}).`);
   if (S.day % 7 === 0) {
     const avg = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
     const alloc = Math.round(90000 * (0.4 + avg / 100));
@@ -459,8 +459,8 @@ function scheduleEvent() {
     desc: 'Streets underwater downtown. Stormwater needs everything with a pump.',
     mult: { 'Stormwater': 4, 'Streets': 1.6 } });
   else if (roll < 0.62) startEvent({ kind: 'parade', name: 'Beachfront Parade', hours: 12,
-    desc: 'A1A parade today. Streets and Beach Patrol on double duty. Bonus for full coverage.',
-    mult: { 'Streets': 2, 'Beach Patrol': 2 } });
+    desc: 'A1A parade today. Streets and Beach on double duty. Bonus for full coverage.',
+    mult: { 'Streets': 2, 'Beach': 2 } });
   else if (roll < 0.8) startEvent({ kind: 'heat', name: 'Heat Wave', hours: 24,
     desc: 'A/C compressors screaming citywide. Deployed vehicles wear 60% faster.' });
   else startEvent({ kind: 'scrap', name: 'Scrap Prices Spike', hours: 24,
@@ -495,12 +495,12 @@ function endEvent() {
       }
     }
     startEvent({ kind: 'flood', name: 'Post-Storm Flooding', hours: 24,
-      desc: 'Dolores left half the city underwater. Pump trucks earn triple service.',
+      desc: 'Dolores left half the city underwater. Vac Trucks earn triple service.',
       mult: { 'Stormwater': 6, 'Streets': 2 } });
     return;
   }
   if (ev.kind === 'parade') {
-    const cov = ['Streets', 'Beach Patrol'].every(d => S.sat[d] > 62);
+    const cov = ['Streets', 'Beach'].every(d => S.sat[d] > 62);
     if (cov) { spend(-15000, 'Parade support bonus'); log('Mayor personally thanked Fleet Services. In public. On camera.'); }
     else log('Parade wrapped. The marching band had to detour around a stalled sweeper.');
   }
