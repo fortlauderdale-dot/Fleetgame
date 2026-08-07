@@ -196,7 +196,7 @@ function makeVehicle(type, opts = {}) {
   const mesh = BUILDERS[type]();
   mesh.traverse(o => { if (o.isMesh) o.castShadow = true; });
   const v = {
-    id: vidSeq++, type, name: `${PREFIX[type]}-${S.nextNum[type]}`,
+    id: vidSeq++, type, name: `${t.label} ${S.nextNum[type]}`,
     dept: t.dept, fuel: opts.fuel ?? 100, cond: opts.cond ?? 100, age: opts.age ?? 0,
     status: 'parked', mesh, slot: null, path: null, hidden: false, workLeft: 0, spot: null,
   };
@@ -676,7 +676,7 @@ function refreshFleet() {
   el.innerHTML = S.vehicles.map(v => `
     <div class="v-item" data-v="${v.id}" style="padding:8px 9px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="nm">${v.name} · ${TYPES[v.type].label}</span>
+        <span class="nm">${v.name}</span>
         <span class="tag ${STATUS_CLS[v.status]}">${STATUS_LABEL[v.status]}</span>
       </div>
       <div class="st" style="color:var(--dim)">${v.dept}</div>
@@ -694,7 +694,7 @@ function sideVehicle(v) {
   const canGarage = (v.status === 'parked' || v.status === 'down') && busyBays < S.bays;
   let val = Math.round(t.price * (0.15 + 0.55 * (v.cond / 100) * Math.max(0.3, 1 - v.age / 20)) * (S.event?.kind === 'scrap' ? 1.2 : 1));
   return `
-    <div class="kv"><span>Unit</span><b>${v.name} — ${t.label}</b></div>
+    <div class="kv"><span>Unit</span><b>${v.name}</b></div>
     <div class="kv"><span>Department</span><b>${v.dept}</b></div>
     <div class="kv"><span>Status</span><b>${STATUS_LABEL[v.status]}</b></div>
     <div class="kv"><span>${t.ev ? 'Charge' : 'Fuel'}</span><b>${Math.round(v.fuel)}%</b></div>
