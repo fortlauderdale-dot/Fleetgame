@@ -269,6 +269,12 @@ function deploy(v) {
   log(`${v.name} rolled out for ${v.dept}.`);
   refreshUI();
 }
+function deployAll() {
+  const eligible = S.vehicles.filter(v => v.status === 'parked' && v.fuel >= 8);
+  if (!eligible.length) { toast('Nothing parked and fueled enough to deploy.', 'warn'); return; }
+  eligible.forEach(deploy);
+  toast(`Deployed ${eligible.length} vehicle${eligible.length > 1 ? 's' : ''}.`, '');
+}
 function recall(v) {
   if (v.status !== 'deployed') return;
   v.status = 'returning';
@@ -807,6 +813,7 @@ document.querySelectorAll('#speedCtl button').forEach(b => b.onclick = () => {
   S.speed = +b.dataset.sp;
   document.querySelectorAll('#speedCtl button').forEach(x => x.classList.toggle('on', x === b));
 });
+$('deployAllBtn').onclick = deployAll;
 
 /* ============================== INPUT (raycast select) ============================== */
 const ray = new THREE.Raycaster();
