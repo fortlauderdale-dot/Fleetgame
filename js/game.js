@@ -619,7 +619,7 @@ function gameOver() {
   const div = document.createElement('div');
   div.id = 'title';
   div.innerHTML = `<div class="wo"><div class="wo-stripe"></div><div class="wo-body">
-    <div class="wo-eyebrow">City of Palmetto Shores · Termination Notice</div>
+    <div class="wo-eyebrow">City of Fort Lauderdale · Termination Notice</div>
     <h1>Fleet <em>Dissolved</em></h1>
     <div class="wo-sub">The county absorbed the fleet. A raccoon was seen driving SW-1 away.</div>
     <div class="wo-fields">
