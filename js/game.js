@@ -25,6 +25,8 @@ const DEPTS = {
   'Stormwater':   { base: 6,  station: 3 },
 };
 const PREFIX = { pickup: 'UT', sedan: 'IN', sweeper: 'SW', sanitation: 'SN', tractor: 'BT', bucket: 'BK', pump: 'PT', evvan: 'EV' };
+const SHIFT_START = { sanitation: 4, tractor: 4, pickup: 6, bucket: 6, evvan: 6, sedan: 8, sweeper: 8, pump: 8 };
+const SHIFT_HOURS = 12;
 const UPGRADES = {
   bay3:     { label: 'Third Garage Bay',      price: 150000, desc: 'One more vehicle serviced at a time.' },
   bay4:     { label: 'Fourth Garage Bay',     price: 250000, desc: 'A proper shop at last.', needs: 'bay3' },
@@ -436,7 +438,7 @@ function spend(n, why, cls = 'money') {
 function deploy(v) {
   if (v.status !== 'parked') return;
   if (v.fuel < 8) { toast(`${v.name} is running on fumes. Refuel first.`, 'warn'); return; }
-  v.status = 'deployed'; v._ranDry = false;
+  v.status = 'deployed'; v._ranDry = false; v._shiftTimer = 0;
   const from = { x: v.mesh.position.x, z: v.mesh.position.z };
   releaseSlot(v);
   setPath(v, [...laneRoute(from, { x: GATE_OUT.x, z: GATE_OUT.z })], () => { v.hidden = true; v.mesh.visible = false; });
@@ -631,6 +633,7 @@ function checkYardRecovered() {
 }
 function hourTick() {
   const stormy = S.event?.kind === 'storm';
+  const hourOfDay = Math.floor(S.minutes / 60) % 24;
   for (const v of S.vehicles) {
     const t = TYPES[v.type];
     if (v.status === 'deployed' || v.status === 'returning') {
@@ -648,6 +651,13 @@ function hourTick() {
       if (S.event?.kind === 'flood' && v.dept === 'Stormwater') pts *= 3;
       S.serviceTotal += pts; LIFE.totalService += pts;
       v._pts = pts;
+      if (v.status === 'deployed') {
+        v._shiftTimer = (v._shiftTimer || 0) + 1;
+        if (v._shiftTimer >= SHIFT_HOURS) {
+          v.status = 'returning';
+          log(`${v.name}'s shift ended. Heading home for the day.`);
+        }
+      }
       if (v.fuel <= 1) {
         if (!v._ranDry) {
           v._ranDry = true; v.status = 'returning';
@@ -666,9 +676,11 @@ function hourTick() {
       }
     } else {
       v._pts = 0;
+      if (v.status === 'parked' && SHIFT_START[v.type] === hourOfDay && v.fuel >= 8) deploy(v);
     }
     v.age += 1 / (24 * 365);
   }
+  // satisfaction drift
   // satisfaction drift
   for (const d in DEPTS) {
     const supply = S.vehicles.filter(v => v.dept === d && (v.status === 'deployed')).reduce((a, v) => a + (v._pts || 0), 0);
