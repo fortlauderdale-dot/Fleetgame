@@ -189,6 +189,25 @@ const LANE_Z = 20;
 let vidSeq = 1;
 
 function freeSlot() { return SLOTS.find(s => !s.taken) || null; }
+const TYPE_ORDER = Object.keys(TYPES);
+function typeHomeIndex(type) {
+  const idx = TYPE_ORDER.indexOf(type);
+  return Math.round((idx + 0.5) / TYPE_ORDER.length * (SLOTS.length - 1));
+}
+function freeSlotForType(type) {
+  const sameTypeIdx = S.vehicles
+    .filter(v => v.type === type && v.slot)
+    .map(v => SLOTS.indexOf(v.slot))
+    .filter(i => i >= 0);
+  const target = sameTypeIdx.length ? sameTypeIdx[0] : typeHomeIndex(type);
+  let best = null, bestDist = Infinity;
+  SLOTS.forEach((s, i) => {
+    if (s.taken) return;
+    const d = Math.abs(i - target);
+    if (d < bestDist) { bestDist = d; best = s; }
+  });
+  return best;
+}
 
 function makeVehicle(type, opts = {}) {
   const t = TYPES[type];
@@ -228,7 +247,7 @@ const START = [
 ];
 for (const [type, fuel, cond] of START) {
   const v = makeVehicle(type, { fuel, cond, age: 2 + Math.random() * 6 });
-  parkAt(v, freeSlot(), true);
+  parkAt(v, freeSlotForType(type), true);
 }
 
 /* ============================== UI HELPERS ============================== */
@@ -341,7 +360,7 @@ function buyVehicle(type) {
   const t = TYPES[type];
   if (t.needs && !S.upgrades[t.needs]) { toast('Requires the EV Charging Station upgrade.', 'warn'); return; }
   if (S.budget < t.price) { toast('Not enough budget.', 'bad'); return; }
-  const slot = freeSlot();
+  const slot = freeSlotfortype(type);
   if (!slot) { toast('Yard is full. Sell something first.', 'warn'); return; }
   spend(t.price, `Purchased ${t.label}`);
   const v = makeVehicle(type);
@@ -897,7 +916,7 @@ function simMinute() {
   // returning vehicles come home
   for (const v of S.vehicles) {
     if (v.status === 'returning' && v.hidden && Math.random() < 0.12) {
-      const slot = freeSlot();
+      const slot = freeSlotfortype(type);
       if (!slot) continue;
       parkAt(v, slot);
       const breaking = v._breaking; v._breaking = false;
@@ -918,7 +937,7 @@ function simMinute() {
       if (v.workLeft <= 0 || v.fuel >= 100) {
         v.fuel = Math.min(100, v.fuel);
         releaseSpot(v);
-        const slot = freeSlot();
+        const slot = freeSlotfortype(type);
         if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); }
         else v.status = 'parked';
         refreshUI();
@@ -928,7 +947,7 @@ function simMinute() {
       v.workLeft -= 1;
       if (v.workLeft <= 0) {
         v.cond = 100;
-        const slot = freeSlot();
+        const slot = freeSlotfortype(type);
         if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); }
         else v.status = 'parked';
         log(`${v.name} back to 100%. Smells like fresh degreaser.`);
