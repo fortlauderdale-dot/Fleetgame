@@ -378,7 +378,37 @@ function buyUpgrade(key) {
 
 /* ============================== SIMULATION ============================== */
 function fieldStation(dept) { return S.stations[DEPTS[dept].station]; }
-
+const TEAM_LINES = [
+'Chris says one of the lifts may need repair soon. This is the third time he\'s said that this week.',
+  'Anthony found a raccoon paw print on a work order. It\'s on the wall now.',
+  'Jen color-coded the maintenance schedule. Nobody asked her to. Everyone is grateful.',
+  'Chelsy answered four phone calls in a row about the fuel island. Same energy each time.',
+  'Chris is convinced one of the pickups has "a personality." He won\'t elaborate.',
+  'Anthony reorganized the parts shelf alphabetically. Glen at Mancon is thrilled. Everyone else is lost.',
+  'Jen caught a budget error nobody else saw. Third time this month.',
+  'Chelsy put a "Beware of Raccoons" sign near the dumpster. It has not helped.',
+  'Drew stared at the fleet dashboard for a full minute before remembering what he was doing.',
+  'Chris named the oldest sanitation truck "Steve." Steve is not doing great.',
+  'Anthony swears the bucket truck arm squeaks in a specific key. Nobody can confirm.',
+  'Jen filed the raccoon incident reports under "wildlife." There is now a wildlife folder.',
+  'Chelsy brought donuts. Morale, unlike the fleet budget, is briefly at 100%.',
+  'Drew double-checked the numbers twice, then trusted Jen\'s math the first time anyway.',
+  'Anthony told a mechanic joke nobody laughed at. He told it again anyway.',
+  'Anthony spotted a raccoon "casing" the fuel canopy. His words.',
+  'Jen scheduled next week\'s maintenance before this week\'s was even done.',
+  'Chelsy answered the phone "Fleet Services, we\'re doing our best" by accident. It stuck.',
+  'Police called to say the car wash is down again. They caused it.',
+  'Police hit the gate again. Second time this week.',
+  'JJ from Moss came by to ask if we could move our vehicles.',
+  'Edgar microwaved fish in the break room again. Drew banned him.',
+  'Chris asked for a raise and settled for a fishing lure. Somehow this feels like a win for him.',
+  'Chelsy\'s "quick question" turned into a 45 minute conversation about her neighbor\'s fence.',
+  'Drew opened his email to 40 unread messages. He clicked "Mark all as read."',
+  'Anthony made a short joke about Derek. Drew gave him "the look." Anthony has built up a tolerance to The Look.',
+];
+  function maybeTeamLine() {
+  if (Math.random() < 0.05) log(TEAM_LINES[(Math.random() * TEAM_LINES.length) | 0]);
+}
 function hourTick() {
   const stormy = S.event?.kind === 'storm';
   for (const v of S.vehicles) {
@@ -626,7 +656,7 @@ function gameOver() {
   div.id = 'title';
   div.innerHTML = `<div class="wo"><div class="wo-stripe"></div><div class="wo-body">
     <div class="wo-eyebrow">City of Fort Lauderdale · Termination Notice</div>
-    <h1>Fleet <em>Dissolved</em></h1>
+   <h1>Fleet <em>Desynchronized</em></h1>
     <div class="wo-sub">The county absorbed the fleet. A raccoon was seen driving SW-1 away.</div>
     <div class="wo-fields">
       <div><b>Days survived:</b> ${S.day}</div><div><b>Service delivered:</b> ${Math.round(S.serviceTotal).toLocaleString()} pts</div>
@@ -857,7 +887,7 @@ const MIN_PER_SEC = 10;
 function simMinute() {
   S.minutes += 1;
   hourAcc += 1;
-  if (hourAcc >= 60) { hourAcc = 0; hourTick(); refreshUI(); }
+  if (hourAcc >= 60) { hourAcc = 0; hourTick(); maybeTeamLine() ;refreshUI(); }
   if (S.minutes >= 24 * 60) { S.minutes -= 24 * 60; S.day++; dayTick(); refreshUI(); }
   if (S.event) { S.event.left -= 1; if (S.event.left <= 0) endEvent(); }
   for (const st of S.stations) if (st._tanker !== undefined) {
