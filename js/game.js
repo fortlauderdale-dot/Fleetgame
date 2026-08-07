@@ -522,7 +522,7 @@ function buyVehicle(type) {
   const t = TYPES[type];
   if (t.needs && !S.upgrades[t.needs]) { toast('Requires the EV Charging Station upgrade.', 'warn'); return; }
   if (S.budget < t.price) { toast('Not enough budget.', 'bad'); return; }
-  const slot = freeSlotfortype(type);
+  const slot = freeSlotForType(type);
   if (!slot) { toast('Yard is full. Sell something first.', 'warn'); return; }
   spend(t.price, `Purchased ${t.label}`);
   const v = makeVehicle(type);
@@ -1143,7 +1143,7 @@ function simMinute() {
   // returning vehicles come home
   for (const v of S.vehicles) {
     if (v.status === 'returning' && v.hidden && Math.random() < 0.12) {
-      const slot = freeSlotfortype(v.type);
+      const slot = freeSlotForType(v.type);
       if (!slot) continue;
       parkAt(v, slot);
       const breaking = v._breaking; v._breaking = false;
@@ -1164,7 +1164,7 @@ function simMinute() {
       if (v.workLeft <= 0 || v.fuel >= 100) {
         v.fuel = Math.min(100, v.fuel);
         releaseSpot(v);
-        const slot = freeSlotfortype(v.type);
+        const slot = freeSlotForType(v.type);
         if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); }
         else v.status = 'parked';
         refreshUI();
@@ -1174,7 +1174,7 @@ function simMinute() {
       v.workLeft -= 1;
       if (v.workLeft <= 0) {
         v.cond = 100;
-        const slot = freeSlotfortype(v.type);
+        const slot = freeSlotForType(v.type);
         if (slot) { parkAt(v, slot); v.status = 'toPark'; setPath(v, laneRoute({ x: v.mesh.position.x, z: v.mesh.position.z }, slot), () => { v.status = 'parked'; refreshUI(); }); }
         else v.status = 'parked';
         log(`${v.name} back to 100%. Smells like fresh degreaser.`);
