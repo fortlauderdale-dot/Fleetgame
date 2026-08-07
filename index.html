@@ -131,6 +131,11 @@
   #eventBanner.watch{background:#2a2410f0;border-color:var(--yellow)}
   #eventBanner h3{margin:0;font-size:18px;letter-spacing:.1em;text-transform:uppercase}
   #eventBanner p{margin:4px 0 0;font-family:var(--mono);font-size:12px;color:var(--sand)}
+  #fuelBanner{position:fixed;top:150px;left:50%;transform:translateX(-50%);z-index:21;display:none;
+    background:#2a1210f0;border:2px solid var(--red);border-radius:6px;padding:8px 16px;text-align:center;
+    width:min(360px,90vw)}
+  #fuelBanner h3{margin:0;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+  #fuelBanner p{margin:3px 0 0;font-family:var(--mono);font-size:11px;color:var(--sand)}
 
   /* ---------- Mobile tab bar ---------- */
   #tabs{position:fixed;left:0;right:0;bottom:30px;z-index:19;display:none;justify-content:center;gap:7px;
@@ -146,6 +151,8 @@
     #ticker{bottom:auto;top:46px;border-top:0;border-bottom:2px solid var(--orange)}
     #alerts{top:86px}
     #eventBanner{top:118px}
+    #fuelBanner{top:172px}
+  }
   }
 </style>
 </head>
@@ -204,6 +211,7 @@
 </div>
 
 <div id="eventBanner"><h3 id="evTitle"></h3><p id="evDesc"></p></div>
+  <div id="fuelBanner"><h3>Yard Main Is Dry</h3><p>Refueling is stalled. Order a tanker to get pumps running again.</p></div>
 <div id="alerts"></div>
 
 <div id="tabs">
