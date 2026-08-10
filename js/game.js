@@ -34,6 +34,7 @@ const UPGRADES = {
   evcharger:{ label: 'EV Charging Station',   price: 90000,  desc: 'Unlocks electric vans. Charging is nearly free.' },
   latches:  { label: 'Raccoon-Proof Latches', price: 15000,  desc: 'Raids drop sharply. The raccoons will take this personally.' },
   barriers: { label: 'Flood Barriers',        price: 60000,  desc: 'Storm and flood damage to the yard is halved.' },
+  autoshift:{ label: 'Shift Scheduling System', price: 60000, desc: 'Vehicles automatically deploy for their shift each day. Without this, you deploy everything by hand.' },
 };
 const money = (n) => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 /* ============================== LIFETIME (persists across shifts) ============================== */
@@ -151,7 +152,7 @@ const S = {
   ],
   sat: {}, demand: {},
   bays: 2, upgrades: {},
-  event: null, nextEventDay: 3,
+  event: null, nextEventDay: 5,
   raccoon: null, raidsFoiled: 0, raidsLost: 0,
   serviceTotal: 0, bailouts: 0, over: false,
   log: [], _hit: new Set(), playerName: 'Fleet Manager', missions: [],
@@ -411,13 +412,10 @@ function loadGame() {
   return true;
 }
 
-// starting fleet: 12 units, mixed condition — the yard you inherited
+// starting fleet: one of each type (except the EV van, which needs the charger upgrade first)
 const START = [
-  ['sanitation', 82, 64], ['sanitation', 55, 41], ['sanitation', 90, 78],
-  ['sweeper', 70, 58], ['sweeper', 44, 37],
-  ['pickup', 95, 88], ['pickup', 62, 52], ['pickup', 30, 26],
-  ['tractor', 77, 61], ['tractor', 51, 33],
-  ['bucket', 85, 70], ['sedan', 98, 92],
+  ['sanitation', 82, 64], ['sweeper', 70, 58], ['pickup', 95, 88], ['tractor', 77, 61],
+  ['bucket', 85, 70], ['sedan', 98, 92], ['pump', 60, 45],
 ];
 for (const [type, fuel, cond] of START) {
   const v = makeVehicle(type, { fuel, cond, age: 2 + Math.random() * 6 });
@@ -606,6 +604,7 @@ function sellVehicle(v) {
 }
 function buyVehicle(type) {
   const t = TYPES[type];
+  if (S.upgrades[`outsourced_${type}`]) { toast(`${t.label}s can't be purchased. That department is outsourced.`, 'warn'); return; }
   if (t.needs && !S.upgrades[t.needs]) { toast('Requires the EV Charging Station upgrade.', 'warn'); return; }
   if (S.budget < t.price) { toast('Not enough budget.', 'bad'); return; }
   const slot = freeSlotForType(type);
@@ -748,7 +747,7 @@ function hourTick() {
       }
     } else {
       v._pts = 0;
-      if (v.status === 'parked' && SHIFT_START[v.type] === hourOfDay && v.fuel >= 8) deploy(v);
+      if (S.upgrades.autoshift && v.status === 'parked' && SHIFT_START[v.type] === hourOfDay && v.fuel >= 8) deploy(v);
     }
     v.age += 1 / (24 * 365);
   }
@@ -807,7 +806,11 @@ function dayTick() {
   saveLifetime();
   saveGame();
   // event scheduling
-  if (!S.event && S.day >= S.nextEventDay) scheduleEvent();
+  if (!S.event && earlyEventQueue.length && S.day >= earlyEventQueue[0].minDay) {
+    earlyEventQueue.shift().start();
+  } else if (!S.event && !earlyEventQueue.length && S.day >= S.nextEventDay) {
+    scheduleEvent();
+  }
   // budget trouble
   if (S.budget < -150000) return gameOver();
   if (S.budget < -50000 && !S._warned) {
@@ -817,6 +820,38 @@ function dayTick() {
   if (S.budget > -50000) S._warned = false;
 }
 /* ============================== EVENTS ============================== */
+const earlyEventQueue = [
+  { minDay: 4,  start: () => startFloodTeachEvent() },
+  { minDay: 9,  start: () => startEvent({ kind: 'watch', name: 'Hurricane Watch', hours: 30,
+      desc: 'Hurricane Dolores inbound. Recall and fuel the fleet before landfall.', banner: 'watch' }) },
+  { minDay: 14, start: () => startOutsourceEvent('sanitation', 'Sanitation') },
+];
+function startFloodTeachEvent() {
+  startEvent({ kind: 'flood', name: 'King Tide Flooding', hours: 18,
+    desc: 'Streets underwater downtown. Stormwater needs everything with a pump.',
+    mult: { 'Stormwater': 4, 'Streets': 1.6 } });
+  if (!S.vehicles.some(v => v.type === 'pump')) {
+    toast('No Vac Truck in the fleet. Check the Shop, one would help a lot right now.', 'warn');
+    log('Stormwater is drowning in demand and we don\'t own a single vac truck. Might be time to buy one.', 'flavor');
+  }
+}
+function startOutsourceEvent(type, deptLabel) {
+  const fleetOfType = S.vehicles.filter(v => v.type === type);
+  let total = 0;
+  const t = TYPES[type];
+  for (const v of fleetOfType) {
+    let val = Math.round(t.price * (0.15 + 0.55 * (v.cond / 100) * Math.max(0.3, 1 - v.age / 20)));
+    total += val;
+    releaseSlot(v); releaseSpot(v);
+    scene.remove(v.mesh);
+  }
+  S.vehicles = S.vehicles.filter(v => v.type !== type);
+  if (total > 0) spend(-total, `${deptLabel} fleet auctioned (outsourced)`);
+  S.upgrades[`outsourced_${type}`] = true;
+  if (S.demand[deptLabel] !== undefined) S.demand[deptLabel] = 0;
+  toast(`City outsourced ${deptLabel}. Fleet auctioned for ${money(total)}.`, 'bad');
+  log(`City Hall outsourced ${deptLabel} to a private contractor. Every unit was auctioned off for ${money(total)}. That department isn't coming back.`, 'flavor');
+}
 function scheduleEvent() {
   const roll = Math.random();
   if (roll < 0.3) startEvent({ kind: 'watch', name: 'Hurricane Watch', hours: 30,
@@ -1096,12 +1131,13 @@ function sideVehicle(v) {
 }
 function sideShop() {
   return Object.entries(TYPES).map(([k, t]) => {
+    const outsourced = S.upgrades[`outsourced_${k}`];
     const locked = t.needs && !S.upgrades[t.needs];
     return `<div class="shop-item">
       <div style="display:flex;justify-content:space-between"><b>${t.label}</b><span class="price">${money(t.price)}</span></div>
       <div class="note" style="margin:4px 0">${t.dept} · ${t.sph} svc/hr · ${t.ev ? 'electric' : t.fph + '%/hr fuel'}</div>
-      <button class="abtn ${locked ? '' : 'pri'}" data-buy="${k}" ${locked ? 'disabled' : ''} style="width:100%">
-        ${locked ? 'Needs EV Charger' : 'Purchase'}</button>
+      <button class="abtn ${(locked || outsourced) ? '' : 'pri'}" data-buy="${k}" ${(locked || outsourced) ? 'disabled' : ''} style="width:100%">
+        ${outsourced ? 'Outsourced' : locked ? 'Needs EV Charger' : 'Purchase'}</button>
     </div>`;
   }).join('');
 }
@@ -1180,7 +1216,7 @@ function sideCity() {
     ${LIFE.badges.length ? `<div class="note" style="margin-top:10px">Milestones earned: ${LIFE.badges.length}</div>` : ''}`;
 }
 function refreshSide() {
-  const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City Status', log: 'Dispatch Log' };
+  const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City / Quests', log: 'Dispatch Log' };
   $('sideTitle').textContent = titles[sideMode];
   const body = $('sideBody');
   if (sideMode === 'vehicle') body.innerHTML = selected ? sideVehicle(selected) : '<div class="note">Tap a vehicle in the yard or the roster.</div>';
@@ -1255,6 +1291,15 @@ renderer.domElement.addEventListener('pointerup', e => {
     if (hitR.length || S.raccoon.group.position.distanceTo(rayGroundPoint()) < 4.5) {
       if (S.raccoon.phase === 'in' || S.raccoon.phase === 'steal') { raccoonShoo(); return; }
     }
+  }
+  const hitGarage = ray.intersectObject(garageG, true);
+  if (hitGarage.length) {
+    sideMode = 'garage';
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'garage'));
+    openPanel('sidePanel');
+    if (innerWidth < 820) closePanel('fleetPanel');
+    refreshUI();
+    return;
   }
   const hits = ray.intersectObjects(S.vehicles.filter(v => v.mesh.visible).map(v => v.mesh), true);
   if (hits.length) {
