@@ -169,7 +169,7 @@ const S = {
   event: null, nextEventDay: 5,
   raccoon: null, raidsFoiled: 0, raidsLost: 0,
   serviceTotal: 0, bailouts: 0, over: false,
-  log: [], _hit: new Set(), playerName: 'Fleet Manager', missions: [],
+  log: [], _hit: new Set(), playerName: 'Fleet Manager', missions: [], pumpCount: 3,
 };
 for (const d in DEPTS) { S.sat[d] = 70; S.demand[d] = DEPTS[d].base; }
 
@@ -257,10 +257,35 @@ const BAY_POS = () => { // service spots in front of garage bays
   return out;
 };
 
-const canopy = buildFuelCanopy(); canopy.position.set(38, 0, -34);
-canopy.traverse(o => { if (o.isMesh) o.castShadow = true; });
-scene.add(canopy);
-const FUEL_SPOTS = [-3.2, 0, 3.2].map(x => ({ x: 38 + x, z: -30, taken: null }));
+const canopyG = new THREE.Group(); canopyG.position.set(38, 0, -34); scene.add(canopyG);
+let canopyMesh = null;
+function rebuildCanopy() {
+  if (canopyMesh) canopyG.remove(canopyMesh);
+  canopyMesh = buildFuelCanopy(S.pumpCount);
+  canopyMesh.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  canopyG.add(canopyMesh);
+}
+const FUEL_SPOTS = [];
+function layoutFuelSpots() {
+  while (FUEL_SPOTS.length < S.pumpCount) FUEL_SPOTS.push({ x: 0, z: -30, taken: null });
+  const spacing = 3.2;
+  FUEL_SPOTS.forEach((s, i) => { s.x = 38 + (i - (S.pumpCount - 1) / 2) * spacing; });
+}
+const MAX_PUMPS = 6;
+function fuelPumpCost() { return 25000 + (S.pumpCount - 3) * 15000; }
+function buyFuelPump() {
+  if (S.pumpCount >= MAX_PUMPS) { toast('Fuel island is at max capacity.', 'warn'); return; }
+  const cost = fuelPumpCost();
+  if (S.budget < cost) { toast('Not enough budget.', 'bad'); return; }
+  spend(cost, 'Added a fuel pump');
+  S.pumpCount++;
+  layoutFuelSpots();
+  rebuildCanopy();
+  log(`Fleet Yard added another pump. ${S.pumpCount} pumps now online.`, 'money');
+  refreshUI();
+}
+layoutFuelSpots();
+rebuildCanopy();
 
 const trailer = buildAdminTrailer(); trailer.position.set(56, 0, -40); scene.add(trailer);
 const gate = buildGate(); gate.position.set(70, 0, 20); gate.rotation.y = Math.PI / 2; scene.add(gate);
@@ -358,7 +383,7 @@ function saveGame() {
   try {
     const data = {
       v: 1, budget: S.budget, minutes: S.minutes, day: S.day,
-      bays: S.bays, upgrades: S.upgrades,
+      bays: S.bays, upgrades: S.upgrades, pumpCount: S.pumpCount,
       stations: S.stations.map(st => ({ res: st.res, auto: st.auto, tanker: st._tanker ?? null })),
       sat: S.sat, demand: S.demand,
       event: S.event ? { kind: S.event.kind, name: S.event.name, desc: S.event.desc, left: S.event.left, mult: S.event.mult || null, banner: S.event.banner || '' } : null,
@@ -382,6 +407,7 @@ function loadGame() {
 
   S.budget = data.budget; S.minutes = data.minutes; S.day = data.day;
   S.bays = data.bays; rebuildGarage(); S.upgrades = data.upgrades || {};
+  S.pumpCount = data.pumpCount || 3; layoutFuelSpots(); rebuildCanopy();
   data.stations.forEach((st, i) => {
     if (!S.stations[i]) return; // old save had more stations than exist now — skip safely
     S.stations[i].res = Math.min(st.res, S.stations[i].cap); S.stations[i].auto = st.auto;
@@ -1194,7 +1220,7 @@ function sideShop() {
   }).join('');
 }
 function sideFuel() {
-  return `<div class="note">All fuel operations draw from Fleet Fuel Island, the city's single 18,000 gallon reserve. Tankers deliver 3,000 gal for ${money(9000)}, six hour ETA. Auto-resupply reorders at 25% for ${money(10350)}.</div>` +
+  return `<div class="note">All fuel operations draw from Fleet Yard, the city's single 18,000 gallon reserve. Tankers deliver 3,000 gal for ${money(9000)}, six hour ETA. Auto-resupply reorders at 25% for ${money(10350)}.</div>` +
     S.stations.map((st, i) => `
     <div class="stn">
       <div style="display:flex;justify-content:space-between"><b>${st.name}</b>
@@ -1204,7 +1230,12 @@ function sideFuel() {
         <button class="abtn teal" data-tanker="${i}" ${st._tanker ? 'disabled' : ''}>${st._tanker ? 'Tanker ' + Math.ceil(st._tanker / 60) + 'h out' : 'Order tanker'}</button>
         <button class="abtn ${st.auto ? 'pri' : ''}" data-auto="${i}">Auto: ${st.auto ? 'On' : 'Off'}</button>
       </div>
-    </div>`).join('');
+    </div>`).join('') +
+    `<div class="note" style="margin-top:14px">Fuel Island</div>
+    <div class="kv"><span>Pumps installed</span><b>${S.pumpCount} of ${MAX_PUMPS}</b></div>
+    ${S.pumpCount < MAX_PUMPS
+      ? `<button class="abtn teal" data-buypump="1" style="width:100%">Add Pump — ${money(fuelPumpCost())}</button>`
+      : `<div class="note">Fuel island is fully expanded.</div>`}`;
 }
 function sideGarage() {
   const busy = S.vehicles.filter(v => v.status === 'maint');
@@ -1295,6 +1326,7 @@ function refreshSide() {
   body.querySelectorAll('[data-tanker]').forEach(b => b.onclick = () => orderTanker(+b.dataset.tanker));
   body.querySelectorAll('[data-auto]').forEach(b => b.onclick = () => { S.stations[+b.dataset.auto].auto = !S.stations[+b.dataset.auto].auto; refreshUI(); });
   body.querySelectorAll('[data-upg]').forEach(b => b.onclick = () => buyUpgrade(b.dataset.upg));
+  body.querySelectorAll('[data-buypump]').forEach(b => b.onclick = () => buyFuelPump());
 }
 let uiDirty = true;
 function refreshUI() { uiDirty = true; }
@@ -1358,6 +1390,15 @@ renderer.domElement.addEventListener('pointerup', e => {
   if (hitGarage.length) {
     sideMode = 'garage';
     document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'garage'));
+    openPanel('sidePanel');
+    if (innerWidth < 820) closePanel('fleetPanel');
+    refreshUI();
+    return;
+  }
+  const hitCanopy = ray.intersectObject(canopyG, true);
+  if (hitCanopy.length) {
+    sideMode = 'fuel';
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'fuel'));
     openPanel('sidePanel');
     if (innerWidth < 820) closePanel('fleetPanel');
     refreshUI();
