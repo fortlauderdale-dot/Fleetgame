@@ -404,3 +404,32 @@ group.add(meshPanel);
 
 return group;
 }
+export function buildGate(width = 6, height = 3.5) {
+const group = new THREE.Group(); 
+
+const frameMat = M(0x6f767c, { metalness: 0.7, roughness: 0.2 });
+const meshMat = M(0xb9bfc4, {
+metalness: 0.5,
+roughness: 0.4,
+wireframe: true
+}); 
+
+// 1. Left and Right gate posts
+const halfW = width / 2;
+const leftPost = cyl(0.12, 0.12, height + 0.5, frameMat);
+leftPost.position.set(-halfW, height / 2, 0); 
+
+const rightPost = cyl(0.12, 0.12, height + 0.5, frameMat);
+rightPost.position.set(halfW, height / 2, 0); 
+
+// 2. Main swinging gate panel mesh
+const gatePanel = box(width - 0.2, height - 0.4, 0.04, meshMat);
+gatePanel.position.set(0, height / 2, 0); 
+
+// 3. Top frame rail for support
+const topRail = box(width, 0.1, 0.1, frameMat);
+topRail.position.set(0, height - 0.1, 0); 
+
+group.add(leftPost, rightPost, gatePanel, topRail);
+return group;
+}
