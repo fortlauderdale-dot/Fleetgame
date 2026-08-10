@@ -251,7 +251,7 @@ frond.position.set(0, 0, 0); 
 frond.rotation.z = a - Math.PI / 2; 
 
 // FIX: Changed to positive numbers so the built-in curve droops downward like an umbrella
-frond.rotation.x = 1.2 + Math.random() * 0.4; 
+frond.rotation.x = 2.6 + Math.random() * 0.3; 
 
 // FIX: Removed the random twist so the wide fan blades stay flat and level to the ground
 frond.rotation.y = 0;
@@ -357,28 +357,35 @@ const postCount = Math.floor(length / postSpacing) + 1;
 const exactSpacing = length / (postCount - 1);
 const postPositions = []; 
 
-// Create and track posts sequentially along the fence line axis
+// 1. Create and track posts sequentially along the local X-AXIS
 for (let i = 0; i < postCount; i++) {
-const zPos = -halfLen + (i * exactSpacing);
-const xPos = 0;
+const xPos = -halfLen + (i * exactSpacing);
+const zPos = 0; // Keeping depth flat 
+
 const post = cyl(0.08, 0.08, height, postMat);
 post.position.set(xPos, height / 2, zPos);
 group.add(post);
+
 postPositions.push(new THREE.Vector3(xPos, height / 2, zPos));
+
 } 
 
-// Bind the mesh panels perfectly between the positions
+// 2. Bind the mesh panels flat along the X line between posts
 for (let i = 0; i < postPositions.length - 1; i++) {
 const pA = postPositions[i];
 const pB = postPositions[i + 1];
-const panelWidth = pA.distanceTo(pB);
-const meshPanel = box(0.02, height - 0.2, panelWidth, meshMat); 
+const panelWidth = pA.distanceTo(pB); 
 
+// Geometry width matches the step distance perfectly
+const meshPanel = box(panelWidth, height - 0.2, 0.02, meshMat);
+
+// Midpoint calculations
 const centerX = (pA.x + pB.x) / 2;
 const centerZ = (pA.z + pB.z) / 2;
 meshPanel.position.set(centerX, height / 2, centerZ);
-meshPanel.lookAt(pB.x, height / 2, pB.z);
+
 group.add(meshPanel);
+
 }
 return group;
 }
