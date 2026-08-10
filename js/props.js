@@ -33,7 +33,7 @@ export function buildGarage(bays = 2) {
     g.add(door, lamp);
     g.userData.doors.push(door);
   }
-  const sign = box(9, 1.6, 0.2, M(0x17948f));
+  const sign = box(9, 1.6, 0.2, M(0x2952cc));
   sign.position.set(0, 8.4, 8.15);
   g.add(sign);
   return g;
@@ -59,7 +59,7 @@ export function buildFuelCanopy(pumpCount = 3) {
     const x = (i - (pumpCount - 1) / 2) * spacing;
     const island = box(2.4, 0.3, 1.4, M(0xd9d2c2)); island.position.set(x, 0.15, 0);
     const pump = box(0.9, 1.7, 0.7, M(0x23282d)); pump.position.set(x, 1.15, 0);
-    const screen = box(0.55, 0.4, 0.06, M(0x17948f, { emissive: 0x0a4a47 })); screen.position.set(x, 1.5, 0.38);
+    const screen = box(0.55, 0.4, 0.06, M(0x2952cc, { emissive: 0x0a4a47 })); screen.position.set(x, 1.5, 0.38);
     g.add(island, pump, screen);
     g.userData.pumps.push(pump);
   }
@@ -334,7 +334,7 @@ export function buildAdminTrailer() {
   const body = box(9, 3.2, 4, M(0xefe3cb));
   body.position.y = 2.0;
   const skirt = box(9.1, 0.5, 4.1, M(0x8a9096)); skirt.position.y = 0.45;
-  const door = box(0.1, 2.0, 1.0, M(0x17948f)); door.position.set(4.52, 1.6, 0.6);
+  const door = box(0.1, 2.0, 1.0, M(0x2952cc)); door.position.set(4.52, 1.6, 0.6);
   const steps = box(1.2, 0.4, 1.2, M(0x6f767c)); steps.position.set(5.2, 0.35, 0.6);
   const ac = box(1.2, 0.8, 1.2, M(0xb9bfc4)); ac.position.set(-2, 3.9, 0);
   for (const z of [-1.2, 0.4]) {
@@ -362,7 +362,7 @@ export function buildGate() {
   arm.rotation.x = Math.PI / 2;
   g.add(arm);
   const booth = box(2.4, 3, 2.4, M(0xd9d2c2)); booth.position.set(0, 1.5, 7.6);
-  const boothRoof = box(3, 0.3, 3, M(0xff6b2c)); boothRoof.position.set(0, 3.15, 7.6);
+  const boothRoof = box(3, 0.3, 3, M(0x7d858b)); boothRoof.position.set(0, 3.15, 7.6);
   g.add(booth, boothRoof);
   return g;
 }
