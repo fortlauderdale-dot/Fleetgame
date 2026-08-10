@@ -365,22 +365,42 @@ const halfLen = length / 2;
 const postCount = Math.floor(length / postSpacing) + 1;
 const exactSpacing = length / (postCount - 1); 
 
-// 1. Create and position structural fence posts
+// Keep track of post positions to bind the mesh panels to them perfectly
+const postPositions = []; 
+
+// 1. Create and position structural fence posts (running along local Z axis by default)
 for (let i = 0; i < postCount; i++) {
-const x = -halfLen + (i * exactSpacing);
+// CHANGE: Setting them up sequentially along the fence line axis
+const zPos = -halfLen + (i * exactSpacing);
+const xPos = 0; 
+
 const post = cyl(0.08, 0.08, height, postMat);
-post.position.set(x, height / 2, 0);
+post.position.set(xPos, height / 2, zPos);
 group.add(post);
+
+// Save the exact coordinate of this post
+postPositions.push(new THREE.Vector3(xPos, height / 2, zPos));
+
 } 
 
-// 2. Create chain-link panels between posts
-for (let i = 0; i < postCount - 1; i++) {
-const xStart = -halfLen + (i * exactSpacing);
-const panelWidth = exactSpacing; 
+// 2. Create chain-link panels and force them to stick between the saved positions
+for (let i = 0; i < postPositions.length - 1; i++) {
+const pA = postPositions[i];
+const pB = postPositions[i + 1]; 
 
-const meshPanel = box(panelWidth, height - 0.2, 0.02, meshMat);
-const centerX = xStart + (panelWidth / 2);
-meshPanel.position.set(centerX, height / 2, 0);
+// Calculate exact distance (width) between these two posts
+const panelWidth = pA.distanceTo(pB);
+
+// Create the mesh box panel
+const meshPanel = box(0.02, height - 0.2, panelWidth, meshMat);
+
+// Calculate the perfect center point between post A and post B
+const centerX = (pA.x + pB.x) / 2;
+const centerZ = (pA.z + pB.z) / 2;
+meshPanel.position.set(centerX, height / 2, centerZ);
+
+// Force the mesh panel to look directly at the next post so it matches orientation
+meshPanel.lookAt(pB.x, height / 2, pB.z);
 
 group.add(meshPanel);
 
