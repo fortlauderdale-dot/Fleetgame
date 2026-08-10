@@ -45,7 +45,7 @@ export function buildFuelCanopy(pumpCount = 3) {
   const width = Math.max(14, pumpCount * spacing + 6);
   const roof = box(width, 0.7, 9, M(0xf2f2ee));
   roof.position.y = 5.4;
-  const band = box(width + 0.1, 0.7, 9.1, M(0xff6b2c));
+  const band = box(width + 0.1, 0.7, 9.1, M(0x2952cc));
   band.position.y = 4.85;
   g.add(roof, band);
   const postX = width / 2 - 1;
@@ -130,8 +130,10 @@ export function buildAdminTrailer() {
     g.add(win);
   }
   const flagPole = cyl(0.06, 0.06, 6, M(0xd9d2c2)); flagPole.position.set(-5.5, 3, 2.6);
-  const flag = box(1.6, 0.9, 0.05, M(0xff6b2c)); flag.position.set(-4.7, 5.5, 2.6);
-  g.add(body, skirt, door, steps, ac, flagPole, flag);
+const flag = box(1.6, 0.9, 0.05, M(0x2952cc)); flag.position.set(-4.7, 5.5, 2.6);
+const seal = cyl(0.28, 0.28, 0.06, M(0xd4af37, { metalness: 0.6, roughness: 0.3 }), 16);
+seal.rotation.x = Math.PI / 2; seal.position.set(-4.7, 5.5, 2.63);
+g.add(body, skirt, door, steps, ac, flagPole, flag, seal);
   return g;
 }
 
