@@ -336,51 +336,55 @@ export function buildAdminTrailer() {
   const skirt = box(9.1, 0.5, 4.1, M(0x8a9096)); skirt.position.y = 0.45;
   const door = box(0.1, 2.0, 1.0, M(0x2952cc)); door.position.set(4.52, 1.6, 0.6);
   const steps = box(1.2, 0.4, 1.2, M(0x6f767c)); steps.position.set(5.2, 0.35, 0.6);
-  const ac = box(1.2, 0.8, 1.2, M(0xb9bfc4)); ac.position.set(-2, 3.9, 0);
-  for (const z of [-1.2, 0.4]) {
-    const win = box(0.1, 1.0, 1.3, M(0x9fd7e0, { roughness: 0.25 }));
-    win.position.set(4.52, 2.2, z - 0.6);
-    g.add(win);
-  }
-  const flagPole = cyl(0.06, 0.06, 6, M(0xd9d2c2)); flagPole.position.set(-5.5, 3, 2.6);
-  const flag = box(1.6, 0.9, 0.05, M(0x2952cc)); flag.position.set(-4.7, 5.5, 2.6);
-  const seal = cyl(0.28, 0.28, 0.06, M(0xd4af37, { metalness: 0.6, roughness: 0.3 }), 16);
-  seal.rotation.x = Math.PI / 2; seal.position.set(-4.7, 5.5, 2.63);
-  g.add(body, skirt, door, steps, ac, flagPole, flag, seal);
-  return g;
-}
+  const ac = box(1.2, 0.8, 1.2, M(0xb9bfc4)); ac.position.set(-2, 3.9, 0); 
 
-export function buildGate() {
-  const g = new THREE.Group();
-  const postMat = M(0xf5b301);
-  for (const z of [-5, 5]) {
-    const p = cyl(0.3, 0.3, 3.4, postMat); p.position.set(0, 1.7, z);
-    g.add(p);
-  }
-  const arm = box(9.6, 0.3, 0.3, new THREE.MeshStandardMaterial({ map: hazardTexture() }));
-  arm.position.set(0, 2.6, 0);
-  arm.rotation.x = Math.PI / 2;
-  g.add(arm);
-  const booth = box(2.4, 3, 2.4, M(0xd9d2c2)); booth.position.set(0, 1.5, 7.6);
-  const boothRoof = box(3, 0.3, 3, M(0x7d858b)); boothRoof.position.set(0, 3.15, 7.6);
-  g.add(booth, boothRoof);
-  return g;
-}
+for (const z of [-1.2, 0.4]) {
+const win = box(0.1, 1.0, 1.3, M(0x9fd7e0, { roughness: 0.25 }));
+win.position.set(4.52, 2.2, z - 0.6);
+g.add(win);
+} 
 
-export function buildFence(len) {
-  const g = new THREE.Group();
-  const railMat = M(0x8a9096, { metalness: 0.4 });
-  const top = box(len, 0.12, 0.12, railMat); top.position.y = 2.4;
-  const middle = box(len, 0.08, 0.08, railMat); middle.position.y = 1.2;
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(len, 2.4),
-    new THREE.MeshStandardMaterial({ color: 0x9aa4ad, transparent: true, opacity: 0.28, side: THREE.DoubleSide }));
-  mesh.position.z = 0;
-  mesh.rotation.y = Math.PI / 2;
-  mesh.position.y = 1.2;
-  g.add(top, middle, mesh);
-  for (let x = -len / 2; x <= len / 2; x += 6) {
-    const p = cyl(0.08, 0.08, 2.5, railMat, 6); p.position.set(x, 1.25, 0);
-    g.add(p);
-  }
-  return g;
+g.add(body, skirt, door, steps, ac);
+return g;
+} 
+
+// ============================================================================
+// NEW FENCE CODE AT THE BOTTOM OF THE FILE
+// ============================================================================
+export function buildFence(length = 20, postSpacing = 4, height = 3.5) {
+const group = new THREE.Group(); 
+
+const postMat = M(0x8a9096, { metalness: 0.6, roughness: 0.3 });
+const meshMat = M(0xb9bfc4, {
+metalness: 0.5,
+roughness: 0.4,
+wireframe: true
+}); 
+
+const halfLen = length / 2;
+const postCount = Math.floor(length / postSpacing) + 1;
+const exactSpacing = length / (postCount - 1); 
+
+// 1. Create and position structural fence posts
+for (let i = 0; i < postCount; i++) {
+const x = -halfLen + (i * exactSpacing);
+const post = cyl(0.08, 0.08, height, postMat);
+post.position.set(x, height / 2, 0);
+group.add(post);
+} 
+
+// 2. Create chain-link panels between posts
+for (let i = 0; i < postCount - 1; i++) {
+const xStart = -halfLen + (i * exactSpacing);
+const panelWidth = exactSpacing; 
+
+const meshPanel = box(panelWidth, height - 0.2, 0.02, meshMat);
+const centerX = xStart + (panelWidth / 2);
+meshPanel.position.set(centerX, height / 2, 0);
+
+group.add(meshPanel);
+
+} 
+
+return group;
 }
