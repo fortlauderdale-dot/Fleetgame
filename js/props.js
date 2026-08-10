@@ -177,4 +177,17 @@ export function buildGate() {
   return g;
 }
 
-export function buildFence(len)
+export function buildFence(len) {
+  const g = new THREE.Group();
+  const railMat = M(0x8a9096, { metalness: 0.4 });
+  const top = box(len, 0.12, 0.12, railMat); top.position.y = 2.4;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(len, 2.4),
+    new THREE.MeshStandardMaterial({ color: 0x9aa4ad, transparent: true, opacity: 0.28, side: THREE.DoubleSide }));
+  mesh.position.y = 1.2;
+  g.add(top, mesh);
+  for (let x = -len / 2; x <= len / 2; x += 6) {
+    const p = cyl(0.08, 0.08, 2.5, railMat, 6); p.position.set(x, 1.25, 0);
+    g.add(p);
+  }
+  return g;
+}
