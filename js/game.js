@@ -8,14 +8,14 @@ import { buildGarage, buildFuelCanopy, buildPalm, buildDumpster, buildLightPole,
 
 /* ============================== DATA ============================== */
 const TYPES = {
-  pickup:     { label: 'Utility Truck',  dept: 'Public Works',    price: 38000,  fph: 2,   wph: 0.5,  sph: 6,  gal: 0.35 },
-  sedan:      { label: 'Inspector Sedan', dept: 'Streets',      price: 26000,  fph: 1, wph: 0.35, sph: 4,  gal: 0.25 },
-  sweeper:    { label: 'Street Sweeper',  dept: 'Stormwater',      price: 120000, fph: 4,   wph: 0.8,  sph: 14, gal: 0.7 },
-  sanitation: { label: 'Garbage Truck',dept: 'Sanitation',   price: 180000, fph: 5,  wph: 0.9,  sph: 20, gal: 0.9 },
-  tractor:    { label: 'Beach Tractor',   dept: 'Beach', price: 95000,  fph: 3,   wph: 1.0,  sph: 12, gal: 0.6 },
-  bucket:     { label: 'Bucket Truck',    dept: 'Public Works',    price: 145000, fph: 3,   wph: 0.6,  sph: 15, gal: 0.7 },
-  pump:       { label: 'Vac Truck',      dept: 'Stormwater',   price: 160000, fph: 2,   wph: 0.7,  sph: 14, gal: 0.8 },
-  evvan:      { label: 'Electric Van',    dept: 'Public Works',    price: 52000,  fph: 2,   wph: 0.3,  sph: 8,  gal: 0, ev: true, needs: 'evcharger' },
+  pickup:     { label: 'Utility Truck',   dept: 'Public Works', price: 38000,  fph: 2, wph: 0.5,  sph: 6,  gal: 0.35, blurb: 'General-purpose runner. Cheap, quick, decent for small jobs and hauling gear.' },
+  sedan:      { label: 'Inspector Sedan', dept: 'Streets',      price: 26000,  fph: 1, wph: 0.35, sph: 4,  gal: 0.25, blurb: 'Sips fuel. Good for light duty and inspections, not built for heavy work.' },
+  sweeper:    { label: 'Street Sweeper',  dept: 'Stormwater',   price: 120000, fph: 4, wph: 0.8,  sph: 14, gal: 0.7,  blurb: 'Keeps the roads clean and storm drains clear.' },
+  sanitation: { label: 'Garbage Truck',   dept: 'Sanitation',   price: 180000, fph: 5, wph: 0.9,  sph: 20, gal: 0.9,  blurb: 'Backbone of trash collection. High service output, but thirsty and wears down fast.' },
+  tractor:    { label: 'Beach Tractor',   dept: 'Beach',        price: 95000,  fph: 3, wph: 1.0,  sph: 12, gal: 0.6,  blurb: 'Rakes the sand. Keeps Beach happy, especially during tourist season or a seaweed bloom.' },
+  bucket:     { label: 'Bucket Truck',    dept: 'Public Works', price: 145000, fph: 3, wph: 0.6,  sph: 15, gal: 0.7,  blurb: 'Aerial work for Public Works crews — streetlights, wires, storm cleanup.' },
+  pump:       { label: 'Vac Truck',       dept: 'Stormwater',   price: 160000, fph: 2, wph: 0.7,  sph: 14, gal: 0.8,  blurb: "Stormwater's best friend. Critical during floods." },
+  evvan:      { label: 'Electric Van',    dept: 'Public Works', price: 52000,  fph: 2, wph: 0.3,  sph: 8,  gal: 0, ev: true, needs: 'evcharger', blurb: 'Near-free to run once you\'ve got the charger. Great once unlocked.' },
 };
 const DEPTS = {
   'Sanitation':   { base: 24, station: 0 },
@@ -28,14 +28,22 @@ const PREFIX = { pickup: 'UT', sedan: 'IN', sweeper: 'SW', sanitation: 'SN', tra
 const SHIFT_START = { sanitation: 4, tractor: 4, pickup: 6, bucket: 6, evvan: 6, sedan: 8, sweeper: 8, pump: 8 };
 const SHIFT_HOURS = 12;
 const UPGRADES = {
-  bay3:     { label: 'Third Garage Bay',      price: 150000, desc: 'One more vehicle serviced at a time.' },
-  bay4:     { label: 'Fourth Garage Bay',     price: 250000, desc: 'A proper shop at last.', needs: 'bay3' },
-  quicklift:{ label: 'Quick-Lift Hydraulics', price: 120000, desc: 'Garage work finishes 35% faster.' },
-  evcharger:{ label: 'EV Charging Station',   price: 90000,  desc: 'Unlocks electric vans. Charging is nearly free.' },
   latches:  { label: 'Raccoon-Proof Latches', price: 15000,  desc: 'Raids drop sharply. The raccoons will take this personally.' },
-  barriers: { label: 'Flood Barriers',        price: 60000,  desc: 'Storm and flood damage to the yard is halved.' },
-  autoshift:{ label: 'Shift Scheduling System', price: 60000, desc: 'Vehicles automatically deploy for their shift each day. Without this, you deploy everything by hand.' },
+  autofuel: { label: 'Auto-Refuel Protocol',  price: 40000,  desc: 'Vehicles under 50% fuel automatically head to the pumps once they\'re back in the yard.', unlockDay: 3 },
+  bay3:     { label: 'Third Garage Bay',      price: 150000, desc: 'One more vehicle serviced at a time.' },
+  quicklift:{ label: 'Quick-Lift Hydraulics', price: 120000, desc: 'Garage work finishes 35% faster.', unlockDay: 5 },
+  autoshift:{ label: 'Shift Scheduling System', price: 60000, desc: 'Vehicles automatically deploy for their shift each day. Without this, you deploy everything by hand.', unlockDay: 6 },
+  evcharger:{ label: 'EV Charging Station',   price: 90000,  desc: 'Unlocks electric vans. Charging is nearly free.', unlockService: 3000 },
+  barriers: { label: 'Flood Barriers',        price: 60000,  desc: 'Storm and flood damage to the yard is halved.', unlockDay: 8 },
+  bay4:     { label: 'Fourth Garage Bay',     price: 250000, desc: 'A proper shop at last.', needs: 'bay3', unlockDay: 12 },
 };
+function isUpgradeUnlocked(key) {
+  const u = UPGRADES[key];
+  if (u.unlockDay && S.day < u.unlockDay) return false;
+  if (u.unlockService && S.serviceTotal < u.unlockService) return false;
+  return true;
+}
+}
 const money = (n) => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 /* ============================== LIFETIME (persists across shifts) ============================== */
 const LIFETIME_KEY = 'fleetgame-lifetime-v1';
@@ -98,11 +106,17 @@ const MAX_MISSIONS = 3;
 function rollMission() {
   const depts = Object.keys(DEPTS);
   const dept = depts[(Math.random() * depts.length) | 0];
+  const tier = Math.floor((LIFE.contractsCompleted || 0) / 3);
+  const scale = 1 + tier * 0.4;
+  const satDays = Math.min(3 + Math.floor(tier / 2), 7);
+  const deployTarget = Math.round(6 * scale);
+  const raidTarget = Math.max(2, Math.round(2 * scale));
+  const serviceTarget = Math.round(1000 * scale);
   const options = [
-    { id: 'sat',     label: `Keep ${dept} above 70% for 3 days running`, kind: 'satStreak',    dept, target: 3,    progress: 0, dueDay: S.day + 6, reward: 8000 },
-    { id: 'deploy',  label: 'Deploy 6 vehicles',                          kind: 'deployCount',  target: 6,    progress: 0, dueDay: S.day + 2, reward: 3000 },
-    { id: 'raid',    label: 'Foil 2 raccoon raids',                       kind: 'raidCount',    target: 2,    progress: 0, dueDay: S.day + 4, reward: 2500 },
-    { id: 'service', label: 'Deliver 1,000 service points',               kind: 'serviceCount', target: 1000, progress: 0, dueDay: S.day + 3, reward: 4000 },
+    { id: 'sat',     label: `Keep ${dept} above 70% for ${satDays} days running`, kind: 'satStreak',    dept, target: satDays,     progress: 0, dueDay: S.day + satDays + 3, reward: Math.round(8000 * scale) },
+    { id: 'deploy',  label: `Deploy ${deployTarget} vehicles`,                     kind: 'deployCount',  target: deployTarget, progress: 0, dueDay: S.day + 2,           reward: Math.round(3000 * scale) },
+    { id: 'raid',    label: `Foil ${raidTarget} raccoon raids`,                    kind: 'raidCount',    target: raidTarget,   progress: 0, dueDay: S.day + 4,           reward: Math.round(2500 * scale) },
+    { id: 'service', label: `Deliver ${serviceTarget.toLocaleString()} service points`, kind: 'serviceCount', target: serviceTarget, progress: 0, dueDay: S.day + 3,      reward: Math.round(4000 * scale) },
   ];
   return options[(Math.random() * options.length) | 0];
 }
@@ -631,6 +645,7 @@ function orderTanker(i) {
 function buyUpgrade(key) {
   const u = UPGRADES[key];
   if (S.upgrades[key]) return;
+  if (!isUpgradeUnlocked(key)) { toast('Not unlocked yet.', 'warn'); return; }
   if (u.needs && !S.upgrades[u.needs]) { toast(`Requires ${UPGRADES[u.needs].label} first.`, 'warn'); return; }
   if (S.budget < u.price) { toast('Not enough budget.', 'bad'); return; }
   spend(u.price, u.label);
@@ -699,6 +714,27 @@ function checkYardRecovered() {
     $('fuelBanner').style.display = 'none';
     toast('Fleet Fuel Island is back online.', '');
     log('Fleet Fuel Island resupplied. Pumps are running again.');
+  }
+}
+function autoFuelCheck() {
+  if (!S.upgrades.autofuel) return;
+  for (const v of S.vehicles) {
+    if (v.status !== 'parked' || v.fuel > 50) continue;
+    const t = TYPES[v.type];
+    if (t.ev) {
+      if (!S.upgrades.evcharger) continue;
+      v.status = 'fueling'; v.workLeft = 90;
+      continue;
+    }
+    const spot = FUEL_SPOTS.find(s => !s.taken);
+    if (!spot) continue; // pumps busy — try again next hour, no spam
+    const need = (100 - v.fuel) * t.gal;
+    if (S.stations[0].res < need) continue; // reserve too low — try again next hour, no spam
+    spot.taken = v.id; v.spot = spot;
+    const from = { x: v.mesh.position.x, z: v.mesh.position.z };
+    releaseSlot(v);
+    v.status = 'toFuel';
+    setPath(v, laneRoute(from, spot), () => { v.status = 'fueling'; v.workLeft = 60; refreshUI(); });
   }
 }
 function hourTick() {
@@ -854,18 +890,30 @@ function startOutsourceEvent(type, deptLabel) {
 }
 function scheduleEvent() {
   const roll = Math.random();
-  if (roll < 0.25) startEvent({ kind: 'watch', name: 'Hurricane Watch', hours: 30,
+  if (roll < 0.18) startEvent({ kind: 'watch', name: 'Hurricane Watch', hours: 30,
     desc: 'Hurricane Dolores inbound. Recall and fuel the fleet before landfall.', banner: 'watch' });
-  else if (roll < 0.38) startEvent({ kind: 'flood', name: 'King Tide Flooding', hours: 18,
+  else if (roll < 0.27) startEvent({ kind: 'flood', name: 'King Tide Flooding', hours: 18,
     desc: 'Streets underwater downtown. Stormwater needs everything with a pump.',
     mult: { 'Stormwater': 4, 'Streets': 1.6 } });
-  else if (roll < 0.51) startEvent({ kind: 'parade', name: 'Beachfront Parade', hours: 12,
-    desc: 'A1A parade today. Streets and Beach Patrol on double duty. Bonus for full coverage.',
-    mult: { 'Streets': 2, 'Beach Patrol': 2 } });
-  else if (roll < 0.64) startEvent({ kind: 'heat', name: 'Heat Wave', hours: 24,
+  else if (roll < 0.36) startEvent({ kind: 'parade', name: 'Beachfront Parade', hours: 12,
+    desc: 'A1A parade today. Streets and Beach on double duty. Bonus for full coverage.',
+    mult: { 'Streets': 2, 'Beach': 2 } });
+  else if (roll < 0.45) startEvent({ kind: 'heat', name: 'Heat Wave', hours: 24,
     desc: 'A/C compressors screaming citywide. Deployed vehicles wear 60% faster.' });
-  else if (roll < 0.77) startEvent({ kind: 'seaweed', name: 'Seaweed Apocalypse', hours: 48,
-    desc: 'A massive sargassum bloom washed ashore. Beach Patrol needs everything they\'ve got, round the clock.',
+  else if (roll < 0.54) startEvent({ kind: 'seaweed', name: 'Seaweed Apocalypse', hours: 48,
+    desc: 'A massive sargassum bloom washed ashore. Beach needs everything they\'ve got, round the clock.',
+    mult: { 'Beach': 3 } });
+  else if (roll < 0.63) startEvent({ kind: 'trashsurge', name: 'Holiday Trash Surge', hours: 36,
+    desc: 'Holiday week left the bins overflowing citywide. Sanitation demand is through the roof.',
+    mult: { 'Sanitation': 2.5 } });
+  else if (roll < 0.72) startEvent({ kind: 'potholes', name: 'Pothole Season', hours: 30,
+    desc: 'Heavy rain chewed up the roads. Streets crews are swamped patching potholes.',
+    mult: { 'Streets': 2.5 } });
+  else if (roll < 0.81) startEvent({ kind: 'sewer', name: 'Sewer Line Break', hours: 24,
+    desc: 'A sewage line ruptured downtown. Public Works needs every truck on site before it gets worse.',
+    mult: { 'Public Works': 3 } });
+  else if (roll < 0.9) startEvent({ kind: 'july4', name: 'Fourth of July Cleanup', hours: 24,
+    desc: 'Holiday crowds trashed the beach overnight. Beach crews need to clear it fast.',
     mult: { 'Beach': 3 } });
   else startEvent({ kind: 'scrap', name: 'Scrap Prices Spike', hours: 24,
     desc: 'Auction values up 20% today. Good day to offload the junkers.' });
@@ -1139,6 +1187,7 @@ function sideShop() {
     return `<div class="shop-item">
       <div style="display:flex;justify-content:space-between"><b>${t.label}</b><span class="price">${money(t.price)}</span></div>
       <div class="note" style="margin:4px 0">${t.dept} · ${t.sph} svc/hr · ${t.ev ? 'electric' : t.fph + '%/hr fuel'}</div>
+      ${t.blurb ? `<div class="note" style="margin:4px 0;color:var(--sand)">${t.blurb}</div>` : ''}
       <button class="abtn ${(locked || outsourced) ? '' : 'pri'}" data-buy="${k}" ${(locked || outsourced) ? 'disabled' : ''} style="width:100%">
         ${outsourced ? 'Outsourced' : locked ? 'Needs EV Charger' : 'Purchase'}</button>
     </div>`;
@@ -1162,13 +1211,17 @@ function sideGarage() {
   return `<div class="kv"><span>Bays</span><b>${busy.length} of ${S.bays} in use</b></div>
     ${busy.map(v => `<div class="kv"><span>${v.name} ${v._maint?.repair ? 'repair' : 'service'}</span><b>${Math.ceil(v.workLeft / 60)}h left</b></div>`).join('') || '<div class="note">Bays are empty. Suspiciously quiet.</div>'}
     <div class="note" style="margin-top:12px">Facility upgrades</div>
-    ${Object.entries(UPGRADES).map(([k, u]) => `
-      <div class="upg">
+    ${Object.entries(UPGRADES).map(([k, u]) => {
+      const owned = S.upgrades[k];
+      const unlocked = isUpgradeUnlocked(k);
+      const unlockText = u.unlockDay ? `Unlocks on Day ${u.unlockDay}` : u.unlockService ? `Unlocks at ${u.unlockService.toLocaleString()} service points` : '';
+      return `<div class="upg">
         <div style="display:flex;justify-content:space-between"><b>${u.label}</b>
-        <span class="price">${S.upgrades[k] ? 'Installed' : money(u.price)}</span></div>
+        <span class="price">${owned ? 'Installed' : unlocked ? money(u.price) : 'Locked'}</span></div>
         <div class="note" style="margin:4px 0">${u.desc}</div>
-        ${S.upgrades[k] ? '' : `<button class="abtn pri" data-upg="${k}" style="width:100%">Install</button>`}
-      </div>`).join('')}`;
+        ${owned ? '' : !unlocked ? `<div class="note warn">${unlockText}</div>` : `<button class="abtn pri" data-upg="${k}" style="width:100%">Install</button>`}
+      </div>`;
+    }).join('')}`;
 }
 function sideLog() {
   if (!S.log.length) return '<div class="note">Nothing logged yet.</div>';
@@ -1213,6 +1266,7 @@ function sideCity() {
     }).join('')}
     ${missionHTML}
     <div class="kv" style="margin-top:10px"><span>Total service delivered</span><b>${Math.round(S.serviceTotal).toLocaleString()} pts</b></div>
+    <div class="note">Deployed vehicles earn service points every hour they're out, more for busier vehicle types, less if their condition drops below 50%. Events can multiply demand, which multiplies what gets earned.</div>
     <div class="kv"><span>Raccoon raids foiled / lost</span><b>${S.raidsFoiled} / ${S.raidsLost}</b></div>
     ${nmHTML}
     <div class="note" style="margin-top:14px">Career record</div>
@@ -1332,7 +1386,7 @@ const MIN_PER_SEC = 10;
 function simMinute() {
   S.minutes += 1;
   hourAcc += 1;
-  if (hourAcc >= 60) { hourAcc = 0; hourTick(); maybeTeamLine(); checkYardRecovered(); refreshUI(); }
+  if (hourAcc >= 60) { hourAcc = 0; hourTick(); maybeTeamLine(); checkYardRecovered(); autoFuelCheck(); refreshUI(); }
   if (S.minutes >= 24 * 60) { S.minutes -= 24 * 60; S.day++; dayTick(); refreshUI(); }
   if (S.event) { S.event.left -= 1; if (S.event.left <= 0) endEvent(); }
   for (const st of S.stations) if (st._tanker !== undefined) {
