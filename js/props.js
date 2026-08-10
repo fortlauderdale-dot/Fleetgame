@@ -39,20 +39,24 @@ export function buildGarage(bays = 2) {
   return g;
 }
 
-export function buildFuelCanopy() {
+export function buildFuelCanopy(pumpCount = 3) {
   const g = new THREE.Group();
-  const roof = box(14, 0.7, 9, M(0xf2f2ee));
+  const spacing = 3.2;
+  const width = Math.max(14, pumpCount * spacing + 6);
+  const roof = box(width, 0.7, 9, M(0xf2f2ee));
   roof.position.y = 5.4;
-  const band = box(14.1, 0.7, 9.1, M(0xff6b2c));
+  const band = box(width + 0.1, 0.7, 9.1, M(0xff6b2c));
   band.position.y = 4.85;
   g.add(roof, band);
-  for (const [x, z] of [[-5.5, -3.5], [5.5, -3.5], [-5.5, 3.5], [5.5, 3.5]]) {
+  const postX = width / 2 - 1;
+  for (const [x, z] of [[-postX, -3.5], [postX, -3.5], [-postX, 3.5], [postX, 3.5]]) {
     const post = cyl(0.25, 0.25, 5, M(0xb9bfc4, { metalness: 0.5 }));
     post.position.set(x, 2.5, z);
     g.add(post);
   }
   g.userData.pumps = [];
-  for (const x of [-3.2, 0, 3.2]) {
+  for (let i = 0; i < pumpCount; i++) {
+    const x = (i - (pumpCount - 1) / 2) * spacing;
     const island = box(2.4, 0.3, 1.4, M(0xd9d2c2)); island.position.set(x, 0.15, 0);
     const pump = box(0.9, 1.7, 0.7, M(0x23282d)); pump.position.set(x, 1.15, 0);
     const screen = box(0.55, 0.4, 0.06, M(0x17948f, { emissive: 0x0a4a47 })); screen.position.set(x, 1.5, 0.38);
