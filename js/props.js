@@ -348,73 +348,45 @@ return g;
 // NEW FENCE CODE AT THE BOTTOM OF THE FILE
 // ============================================================================
 export function buildFence(length = 20, postSpacing = 4, height = 3.5) {
-const group = new THREE.Group(); 
-
+const group = new THREE.Group();
 const postMat = M(0x8a9096, { metalness: 0.6, roughness: 0.3 });
-const meshMat = M(0xb9bfc4, {
-metalness: 0.5,
-roughness: 0.4,
-wireframe: true
-}); 
+const meshMat = M(0xb9bfc4, { metalness: 0.5, roughness: 0.4, wireframe: true }); 
 
 const halfLen = length / 2;
 const postCount = Math.floor(length / postSpacing) + 1;
-const exactSpacing = length / (postCount - 1); 
-
-// Keep track of post positions to bind the mesh panels to them perfectly
+const exactSpacing = length / (postCount - 1);
 const postPositions = []; 
 
-// 1. Create and position structural fence posts (running along local Z axis by default)
+// Create and track posts sequentially along the fence line axis
 for (let i = 0; i < postCount; i++) {
-// CHANGE: Setting them up sequentially along the fence line axis
 const zPos = -halfLen + (i * exactSpacing);
-const xPos = 0; 
-
+const xPos = 0;
 const post = cyl(0.08, 0.08, height, postMat);
 post.position.set(xPos, height / 2, zPos);
 group.add(post);
-
-// Save the exact coordinate of this post
 postPositions.push(new THREE.Vector3(xPos, height / 2, zPos));
-
 } 
 
-// 2. Create chain-link panels and force them to stick between the saved positions
+// Bind the mesh panels perfectly between the positions
 for (let i = 0; i < postPositions.length - 1; i++) {
 const pA = postPositions[i];
-const pB = postPositions[i + 1]; 
-
-// Calculate exact distance (width) between these two posts
+const pB = postPositions[i + 1];
 const panelWidth = pA.distanceTo(pB);
+const meshPanel = box(0.02, height - 0.2, panelWidth, meshMat); 
 
-// Create the mesh box panel
-const meshPanel = box(0.02, height - 0.2, panelWidth, meshMat);
-
-// Calculate the perfect center point between post A and post B
 const centerX = (pA.x + pB.x) / 2;
 const centerZ = (pA.z + pB.z) / 2;
 meshPanel.position.set(centerX, height / 2, centerZ);
-
-// Force the mesh panel to look directly at the next post so it matches orientation
 meshPanel.lookAt(pB.x, height / 2, pB.z);
-
 group.add(meshPanel);
-
-} 
-
+}
 return group;
 }
 export function buildGate(width = 6, height = 3.5) {
-const group = new THREE.Group(); 
-
+const group = new THREE.Group();
 const frameMat = M(0x6f767c, { metalness: 0.7, roughness: 0.2 });
-const meshMat = M(0xb9bfc4, {
-metalness: 0.5,
-roughness: 0.4,
-wireframe: true
-}); 
+const meshMat = M(0xb9bfc4, { metalness: 0.5, roughness: 0.4, wireframe: true }); 
 
-// 1. Left and Right gate posts
 const halfW = width / 2;
 const leftPost = cyl(0.12, 0.12, height + 0.5, frameMat);
 leftPost.position.set(-halfW, height / 2, 0); 
@@ -422,11 +394,9 @@ leftPost.position.set(-halfW, height / 2, 0); 
 const rightPost = cyl(0.12, 0.12, height + 0.5, frameMat);
 rightPost.position.set(halfW, height / 2, 0); 
 
-// 2. Main swinging gate panel mesh
 const gatePanel = box(width - 0.2, height - 0.4, 0.04, meshMat);
 gatePanel.position.set(0, height / 2, 0); 
 
-// 3. Top frame rail for support
 const topRail = box(width, 0.1, 0.1, frameMat);
 topRail.position.set(0, height - 0.1, 0); 
 
