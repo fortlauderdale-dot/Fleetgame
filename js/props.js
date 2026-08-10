@@ -68,46 +68,235 @@ export function buildFuelCanopy(pumpCount = 3) {
 
 export function buildPalm(h = 7) {
   const g = new THREE.Group();
+
+  // -------------------------
+  // TRUNK
+  // -------------------------
   const lean = (Math.random() - 0.5) * 0.16;
+
   const trunkA = M(0x9a7b52);
   const trunkB = M(0x8a6c46);
-  const segs = 4;
+
+  const segs = 5;
   const segH = h / segs;
+
   for (let i = 0; i < segs; i++) {
-    const r1 = 0.3 - (i / segs) * 0.14;
-    const r2 = 0.3 - ((i + 1) / segs) * 0.14;
-    const seg = cyl(r2, r1, segH, i % 2 ? trunkB : trunkA, 8);
-    seg.position.set(0, segH * i + segH / 2, 0);
+    const t1 = i / segs;
+    const t2 = (i + 1) / segs;
+
+    const r1 = 0.30 - t1 * 0.14;
+    const r2 = 0.30 - t2 * 0.14;
+
+    const seg = cyl(
+      r2,
+      r1,
+      segH,
+      i % 2 ? trunkB : trunkA,
+      8
+    );
+
+    // Very subtle natural bend
+    seg.position.set(
+      Math.sin(t1 * Math.PI * 0.7) * 0.08,
+      segH * i + segH / 2,
+      0
+    );
+
     g.add(seg);
   }
+
   g.rotation.z = lean;
-  const frondMat = M(0x2e7d46, { side: THREE.DoubleSide });
-  const upperCount = 5;
-  for (let i = 0; i < upperCount; i++) {
-    const a = (i / upperCount) * Math.PI * 2;
-    const f = new THREE.Mesh(new THREE.ConeGeometry(0.4, 3.0, 4), frondMat);
-    f.scale.set(1, 1, 0.13);
-    f.position.set(Math.cos(a) * 0.8, h + 0.55, Math.sin(a) * 0.8);
-    f.rotation.set(Math.sin(a) * 0.55, -a, Math.cos(a) * 0.55);
-    g.add(f);
+
+
+  // -------------------------
+  // PALM FRONDS
+  // -------------------------
+
+  const frondColors = [
+    0x245c32,
+    0x2e7040,
+    0x387947,
+    0x285f35
+  ];
+
+
+  // Creates ONE low-poly palm leaf.
+  //
+  // The leaf starts at (0,0,0)
+  // and extends along +Y.
+  //
+  // It gets narrower toward the tip
+  // and bends downward.
+  function makeFrond(length, width, material) {
+
+    const segments = 5;
+
+    // distance along leaf
+    const ys = [
+      0,
+      length * 0.18,
+      length * 0.40,
+      length * 0.67,
+      length * 0.86,
+      length
+    ];
+
+    // width at each point
+    const ws = [
+      width * 0.18,
+      width * 0.55,
+      width,
+      width * 0.78,
+      width * 0.42,
+      0.03
+    ];
+
+    // downward bend
+    const zs = [
+      0,
+      0.02,
+      -0.06,
+      -0.20,
+      -0.42,
+      -0.62
+    ];
+
+    const vertices = [];
+
+    for (let i = 0; i <= segments; i++) {
+
+      // left side
+      vertices.push(
+        -ws[i],
+        ys[i],
+        zs[i]
+      );
+
+      // right side
+      vertices.push(
+        ws[i],
+        ys[i],
+        zs[i]
+      );
+    }
+
+    const indices = [];
+
+    for (let i = 0; i < segments; i++) {
+      const a = i * 2;
+      const b = i * 2 + 1;
+      const c = i * 2 + 2;
+      const d = i * 2 + 3;
+
+      // front
+      indices.push(a, c, b);
+      indices.push(b, c, d);
+
+      // back
+      indices.push(b, c, a);
+      indices.push(d, c, b);
+    }
+
+    const geometry = new THREE.BufferGeometry();
+
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(vertices, 3)
+    );
+
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    return new THREE.Mesh(geometry, material);
   }
-  const lowerCount = 6;
-  for (let i = 0; i < lowerCount; i++) {
-    const a = (i / lowerCount) * Math.PI * 2 + Math.PI / lowerCount;
-    const f = new THREE.Mesh(new THREE.ConeGeometry(0.42, 3.6, 4), frondMat);
-    f.scale.set(1, 1, 0.13);
-    f.position.set(Math.cos(a) * 1.05, h + 0.15, Math.sin(a) * 1.05);
-    f.rotation.set(Math.sin(a) * 1.15, -a, Math.cos(a) * 1.15);
-    g.add(f);
+
+
+  // -------------------------
+  // FROND CROWN
+  // -------------------------
+
+  const crown = new THREE.Group();
+
+  const frondCount = 11;
+
+  for (let i = 0; i < frondCount; i++) {
+
+    const a =
+      (i / frondCount) * Math.PI * 2 +
+      (Math.random() - 0.5) * 0.20;
+
+    const length =
+      2.8 +
+      Math.random() * 0.7;
+
+    const width =
+      0.42 +
+      Math.random() * 0.12;
+
+    const mat = M(
+      frondColors[Math.floor(Math.random() * frondColors.length)],
+      { side: THREE.DoubleSide }
+    );
+
+    const frond = makeFrond(
+      length,
+      width,
+      mat
+    );
+
+    // Put the base of every leaf at the crown
+    frond.position.set(0, 0, 0);
+
+    // Rotate the leaf around the trunk
+    frond.rotation.z =
+      a - Math.PI / 2;
+
+    // Different leaves droop different amounts
+    frond.rotation.x =
+      -0.15 -
+      Math.random() * 0.35;
+
+    // Slight random twist
+    frond.rotation.y =
+      (Math.random() - 0.5) * 0.18;
+
+    crown.add(frond);
   }
+
+  crown.position.y = h + 0.10;
+
+  g.add(crown);
+
+
+  // -------------------------
+  // COCONUTS
+  // -------------------------
+
   const coco = new THREE.Group();
+
+  const coconutMat = M(0x6b4f2a);
+
   for (let i = 0; i < 3; i++) {
-    const nut = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), M(0x6b4f2a));
-    const a2 = (i / 3) * Math.PI * 2;
-    nut.position.set(Math.cos(a2) * 0.14, h + 0.05, Math.sin(a2) * 0.14);
+
+    const nut = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 6, 6),
+      coconutMat
+    );
+
+    const a2 =
+      (i / 3) * Math.PI * 2;
+
+    nut.position.set(
+      Math.cos(a2) * 0.14,
+      h + 0.05,
+      Math.sin(a2) * 0.14
+    );
+
     coco.add(nut);
   }
+
   g.add(coco);
+
   return g;
 }
 
