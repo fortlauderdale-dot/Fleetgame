@@ -244,16 +244,16 @@ export function buildPalm(h = 7) {
       mat
     );
 
-    // Put the base of every leaf at the crown
+    // Put the base of every leaf at the crown hub
 frond.position.set(0, 0, 0); 
 
-// Rotate the leaf around the trunk
-frond.rotation.z = a - Math.PI / 2; 
+// FIX: Flip the leaf orientation by 180 degrees (adding Math.PI) so it faces outward and downward
+frond.rotation.z = a - Math.PI / 2 + Math.PI; 
 
-// FIX: Changed to positive numbers so the built-in curve droops downward like an umbrella
-frond.rotation.x = 2.6 + Math.random() * 0.3; 
+// FIX: Reset the tilt back to a natural, subtle droop angle on the proper forward axis
+frond.rotation.x = -0.15 - Math.random() * 0.35; 
 
-// FIX: Removed the random twist so the wide fan blades stay flat and level to the ground
+// FIX: Restore the horizontal alignment so the wide fan faces stay parallel to the ground
 frond.rotation.y = 0;
 
     crown.add(frond);
