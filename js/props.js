@@ -1,4 +1,4 @@
-// props.js — the Palmetto Shores fleet yard scenery.
+// props.js — the Fort Lauderdale fleet yard scenery.
 import * as THREE from 'three';
 import { hazardTexture } from './textures.js';
 
@@ -130,10 +130,10 @@ export function buildAdminTrailer() {
     g.add(win);
   }
   const flagPole = cyl(0.06, 0.06, 6, M(0xd9d2c2)); flagPole.position.set(-5.5, 3, 2.6);
-const flag = box(1.6, 0.9, 0.05, M(0x2952cc)); flag.position.set(-4.7, 5.5, 2.6);
-const seal = cyl(0.28, 0.28, 0.06, M(0xd4af37, { metalness: 0.6, roughness: 0.3 }), 16);
-seal.rotation.x = Math.PI / 2; seal.position.set(-4.7, 5.5, 2.63);
-g.add(body, skirt, door, steps, ac, flagPole, flag, seal);
+  const flag = box(1.6, 0.9, 0.05, M(0x2952cc)); flag.position.set(-4.7, 5.5, 2.6);
+  const seal = cyl(0.28, 0.28, 0.06, M(0xd4af37, { metalness: 0.6, roughness: 0.3 }), 16);
+  seal.rotation.x = Math.PI / 2; seal.position.set(-4.7, 5.5, 2.63);
+  g.add(body, skirt, door, steps, ac, flagPole, flag, seal);
   return g;
 }
 
