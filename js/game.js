@@ -43,7 +43,6 @@ function isUpgradeUnlocked(key) {
   if (u.unlockService && S.serviceTotal < u.unlockService) return false;
   return true;
 }
-}
 const money = (n) => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 /* ============================== LIFETIME (persists across shifts) ============================== */
 const LIFETIME_KEY = 'fleetgame-lifetime-v1';
