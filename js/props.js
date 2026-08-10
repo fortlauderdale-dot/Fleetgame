@@ -68,42 +68,43 @@ export function buildFuelCanopy(pumpCount = 3) {
 
 export function buildPalm(h = 7) {
   const g = new THREE.Group();
-  const trunkMat = M(0x9a7b52);
-  const ringMat = M(0x7a6142);
-  const lean = (Math.random() - 0.5) * 0.22;
-  const segs = 6;
+  const lean = (Math.random() - 0.5) * 0.16;
+  const trunkA = M(0x9a7b52);
+  const trunkB = M(0x8a6c46);
+  const segs = 4;
   const segH = h / segs;
   for (let i = 0; i < segs; i++) {
-    const r1 = 0.34 - (i / segs) * 0.16;
-    const r2 = 0.34 - ((i + 1) / segs) * 0.16;
-    const seg = cyl(r2, r1, segH, trunkMat, 7);
+    const r1 = 0.3 - (i / segs) * 0.14;
+    const r2 = 0.3 - ((i + 1) / segs) * 0.14;
+    const seg = cyl(r2, r1, segH, i % 2 ? trunkB : trunkA, 8);
     seg.position.set(0, segH * i + segH / 2, 0);
     g.add(seg);
-    if (i < segs - 1) {
-      const ring = cyl(r2 + 0.02, r2 + 0.02, 0.05, ringMat, 7);
-      ring.position.set(0, segH * (i + 1), 0);
-      g.add(ring);
-    }
   }
   g.rotation.z = lean;
   const frondMat = M(0x2e7d46, { side: THREE.DoubleSide });
-  const dryMat = M(0x8a7a3f, { side: THREE.DoubleSide });
-  const frondCount = 9;
-  for (let i = 0; i < frondCount; i++) {
-    const a = (i / frondCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
-    const droop = 0.8 + Math.random() * 0.7;
-    const len = 3.0 + Math.random() * 0.9;
-    const dry = i === frondCount - 1;
-    const f = new THREE.Mesh(new THREE.ConeGeometry(0.5, len, 4), dry ? dryMat : frondMat);
-    f.scale.set(1, 1, 0.15);
-    f.position.set(Math.cos(a) * 1.1, h + 0.3, Math.sin(a) * 1.1);
-    f.rotation.set(Math.sin(a) * droop, -a, Math.cos(a) * droop);
+  const upperCount = 5;
+  for (let i = 0; i < upperCount; i++) {
+    const a = (i / upperCount) * Math.PI * 2;
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.4, 3.0, 4), frondMat);
+    f.scale.set(1, 1, 0.13);
+    f.position.set(Math.cos(a) * 0.8, h + 0.55, Math.sin(a) * 0.8);
+    f.rotation.set(Math.sin(a) * 0.55, -a, Math.cos(a) * 0.55);
+    g.add(f);
+  }
+  const lowerCount = 6;
+  for (let i = 0; i < lowerCount; i++) {
+    const a = (i / lowerCount) * Math.PI * 2 + Math.PI / lowerCount;
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.42, 3.6, 4), frondMat);
+    f.scale.set(1, 1, 0.13);
+    f.position.set(Math.cos(a) * 1.05, h + 0.15, Math.sin(a) * 1.05);
+    f.rotation.set(Math.sin(a) * 1.15, -a, Math.cos(a) * 1.15);
     g.add(f);
   }
   const coco = new THREE.Group();
-  for (let i = 0; i < 4; i++) {
-    const nut = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 6), M(0x6b4f2a));
-    nut.position.set(0.25 + Math.random() * 0.2, h - 0.15 - Math.random() * 0.15, 0.15 + Math.random() * 0.2);
+  for (let i = 0; i < 3; i++) {
+    const nut = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), M(0x6b4f2a));
+    const a2 = (i / 3) * Math.PI * 2;
+    nut.position.set(Math.cos(a2) * 0.14, h + 0.05, Math.sin(a2) * 0.14);
     coco.add(nut);
   }
   g.add(coco);
