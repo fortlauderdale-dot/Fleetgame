@@ -16,6 +16,20 @@ function wheel(r = 0.55, w = 0.4) {
   g.add(t, h);
   return g;
 }
+function buildBrush() {
+  const g = new THREE.Group();
+  const hub = cyl(0.12, 0.12, 0.26, M(0x2c3237), 10);
+  g.add(hub);
+  const bristle = M(0xe0b84f, { roughness: 0.9 });
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const b = box(0.42, 0.06, 0.08, bristle);
+    b.position.set(Math.cos(a) * 0.28, 0, Math.sin(a) * 0.28);
+    b.rotation.y = a;
+    g.add(b);
+  }
+  return g;
+}
 function addWheels(group, positions, r, w) {
   group.userData.wheels = [];
   for (const [x, z] of positions) {
@@ -52,7 +66,7 @@ export function buildPickup(color = 0xf2f2ee) {
   const bedIn = box(1.9, 0.2, 1.6, M(0x2c3237)); bedIn.position.set(-1.15, 1.25, 0);
   const c = cab(1.7, 1.35, 1.9, mat); c.position.set(0.55, 0.6, 0);
   const nose = box(1.3, 0.8, 1.85, mat); nose.position.set(1.85, 0.95, 0);
-  const stripe = box(4.3, 0.16, 1.92, M(0xff6b2c)); stripe.position.set(0.25, 0.72, 0);
+  const stripe = box(4.3, 0.16, 1.92, M(0x2952cc)); stripe.position.set(0.25, 0.72, 0);
   g.add(bed, bedIn, c, nose, stripe);
   addWheels(g, [[1.6, 1.05], [1.6, -1.05], [-1.35, 1.05], [-1.35, -1.05]], 0.52, 0.4);
   return g;
@@ -70,7 +84,7 @@ export function buildSedan(color = 0xf2f2ee) {
   return g;
 }
 
-export function buildSanitation(color = 0x3fae5c) {
+export function buildSanitation(color = 0x2952cc) {
   const g = new THREE.Group();
   const white = M(0xf2f2ee), body = M(color);
   const c = cab(1.6, 1.7, 2.2, white); c.position.set(2.2, 0.7, 0);
@@ -83,7 +97,7 @@ export function buildSanitation(color = 0x3fae5c) {
   return g;
 }
 
-export function buildBeachTractor(color = 0xf5b301) {
+export function buildBeachTractor(color = 0xff6a13) {
   const g = new THREE.Group();
   const body = M(color);
   const hood = box(2.4, 1.2, 1.5, body); hood.position.set(0.9, 1.35, 0);
@@ -101,6 +115,20 @@ export function buildBeachTractor(color = 0xf5b301) {
   const r1 = wheel(0.95, 0.6); r1.position.set(-1.0, 0.95, 1.1);
   const r2 = wheel(0.95, 0.6); r2.position.set(-1.0, 0.95, -1.1);
   g.add(r1, r2); g.userData.wheels.push(r1, r2);
+  // towed sand sifter — still one vehicle, just trailing geometry
+  const sifterBlue = M(0x2952cc);
+  const drawbar = box(1.0, 0.1, 0.12, M(0x2c3237)); drawbar.position.set(-3.15, 0.55, 0);
+  const sifterBed = box(2.0, 0.5, 1.7, sifterBlue); sifterBed.position.set(-4.4, 0.6, 0);
+  sifterBed.rotation.x = 0.05;
+  for (let i = -3; i <= 3; i++) {
+    const slat = box(2.02, 0.06, 0.06, M(0x1d3a99)); slat.position.set(-4.4, 0.86, i * 0.22);
+    g.add(slat);
+  }
+  const axle = cyl(0.1, 0.1, 1.7, M(0x2c3237), 8); axle.rotation.x = Math.PI / 2; axle.position.set(-4.4, 0.32, 0);
+  const sw1 = wheel(0.42, 0.3); sw1.position.set(-4.4, 0.42, 0.9);
+  const sw2 = wheel(0.42, 0.3); sw2.position.set(-4.4, 0.42, -0.9);
+  g.add(drawbar, sifterBed, axle, sw1, sw2);
+  g.userData.wheels.push(sw1, sw2);
   return g;
 }
 
@@ -110,7 +138,7 @@ export function buildBucketTruck(color = 0xf2f2ee) {
   const c = cab(1.6, 1.5, 2.1, white); c.position.set(2.1, 0.65, 0);
   const bed = box(3.8, 0.9, 2.1, white); bed.position.set(-0.6, 1.0, 0);
   const base = cyl(0.4, 0.5, 0.6, M(0x8a9096)); base.position.set(-1.6, 1.75, 0);
-  const armMat = M(0xff6b2c);
+  const armMat = M(0x2952cc);
   const arm1 = box(2.6, 0.28, 0.28, armMat); arm1.position.set(-0.6, 2.6, 0); arm1.rotation.z = 0.5;
   const arm2 = box(2.4, 0.24, 0.24, armMat); arm2.position.set(1.2, 3.5, 0); arm2.rotation.z = -0.25;
   const bucket = box(0.8, 0.7, 0.8, armMat); bucket.position.set(2.4, 3.5, 0);
@@ -122,11 +150,11 @@ export function buildBucketTruck(color = 0xf2f2ee) {
 
 export function buildSweeper(color = 0xf2f2ee) {
   const g = new THREE.Group();
-  const white = M(color), teal = M(0x17948f);
+  const white = M(color), blue = M(0x2952cc);
   const c = cab(1.8, 1.8, 2.0, white); c.position.set(1.6, 0.6, 0);
-  const tank = cyl(1.0, 1.0, 2.6, teal, 16); tank.rotation.z = Math.PI / 2; tank.position.set(-0.9, 1.7, 0);
-  const brushL = cyl(0.5, 0.5, 0.25, M(0xd44), 10); brushL.position.set(2.3, 0.28, 0.9);
-  const brushR = cyl(0.5, 0.5, 0.25, M(0xd44), 10); brushR.position.set(2.3, 0.28, -0.9);
+  const tank = cyl(1.0, 1.0, 2.6, blue, 16); tank.rotation.z = Math.PI / 2; tank.position.set(-0.9, 1.7, 0);
+  const brushL = buildBrush(); brushL.position.set(2.3, 0.28, 0.9);
+  const brushR = buildBrush(); brushR.position.set(2.3, 0.28, -0.9);
   g.userData.brushes = [brushL, brushR];
   const lb = lightBar(1.0); lb.position.set(1.6, 2.5, 0);
   g.add(c, tank, brushL, brushR, lb);
