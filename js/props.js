@@ -68,21 +68,44 @@ export function buildFuelCanopy(pumpCount = 3) {
 
 export function buildPalm(h = 7) {
   const g = new THREE.Group();
-  const trunk = cyl(0.22, 0.34, h, M(0x9a7b52), 7);
-  trunk.position.y = h / 2;
-  trunk.rotation.z = (Math.random() - 0.5) * 0.18;
-  g.add(trunk);
+  const trunkMat = M(0x9a7b52);
+  const ringMat = M(0x7a6142);
+  const lean = (Math.random() - 0.5) * 0.22;
+  const segs = 6;
+  const segH = h / segs;
+  for (let i = 0; i < segs; i++) {
+    const r1 = 0.34 - (i / segs) * 0.16;
+    const r2 = 0.34 - ((i + 1) / segs) * 0.16;
+    const seg = cyl(r2, r1, segH, trunkMat, 7);
+    seg.position.set(0, segH * i + segH / 2, 0);
+    g.add(seg);
+    if (i < segs - 1) {
+      const ring = cyl(r2 + 0.02, r2 + 0.02, 0.05, ringMat, 7);
+      ring.position.set(0, segH * (i + 1), 0);
+      g.add(ring);
+    }
+  }
+  g.rotation.z = lean;
   const frondMat = M(0x2e7d46, { side: THREE.DoubleSide });
-  for (let i = 0; i < 7; i++) {
-    const f = new THREE.Mesh(new THREE.ConeGeometry(0.55, 3.4, 4), frondMat);
-    f.scale.set(1, 1, 0.22);
-    const a = (i / 7) * Math.PI * 2;
-    f.position.set(Math.cos(a) * 1.15, h + 0.35, Math.sin(a) * 1.15);
-    f.rotation.set(Math.sin(a) * 1.25, -a, Math.cos(a) * 1.25);
+  const dryMat = M(0x8a7a3f, { side: THREE.DoubleSide });
+  const frondCount = 9;
+  for (let i = 0; i < frondCount; i++) {
+    const a = (i / frondCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+    const droop = 0.8 + Math.random() * 0.7;
+    const len = 3.0 + Math.random() * 0.9;
+    const dry = i === frondCount - 1;
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.5, len, 4), dry ? dryMat : frondMat);
+    f.scale.set(1, 1, 0.15);
+    f.position.set(Math.cos(a) * 1.1, h + 0.3, Math.sin(a) * 1.1);
+    f.rotation.set(Math.sin(a) * droop, -a, Math.cos(a) * droop);
     g.add(f);
   }
-  const coco = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), M(0x6b4f2a));
-  coco.position.set(0.3, h - 0.1, 0.2);
+  const coco = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const nut = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 6), M(0x6b4f2a));
+    nut.position.set(0.25 + Math.random() * 0.2, h - 0.15 - Math.random() * 0.15, 0.15 + Math.random() * 0.2);
+    coco.add(nut);
+  }
   g.add(coco);
   return g;
 }
@@ -154,17 +177,4 @@ export function buildGate() {
   return g;
 }
 
-export function buildFence(len) {
-  const g = new THREE.Group();
-  const railMat = M(0x8a9096, { metalness: 0.4 });
-  const top = box(len, 0.12, 0.12, railMat); top.position.y = 2.4;
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(len, 2.4),
-    new THREE.MeshStandardMaterial({ color: 0x9aa4ad, transparent: true, opacity: 0.28, side: THREE.DoubleSide }));
-  mesh.position.y = 1.2;
-  g.add(top, mesh);
-  for (let x = -len / 2; x <= len / 2; x += 6) {
-    const p = cyl(0.08, 0.08, 2.5, railMat, 6); p.position.set(x, 1.25, 0);
-    g.add(p);
-  }
-  return g;
-}
+export function buildFence(len)
