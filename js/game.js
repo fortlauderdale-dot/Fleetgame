@@ -715,7 +715,7 @@ function hourTick() {
         else burn *= 1.6;
       }
       v.fuel = Math.max(1, v.fuel - burn);
-      let wear = t.wph * (stormy ? 4 : (S.event?.kind === 'heat' ? 1.6 : 1));
+      let wear = t.wph * (stormy ? 4 : (S.event?.kind === 'heat' || S.event?.kind === 'seaweed' ? 1.6 : 1));
       v.cond = Math.max(0, v.cond - wear);
       let pts = t.sph * (v.cond > 50 ? 1 : 0.7);
       if (S.event?.kind === 'flood' && v.dept === 'Stormwater') pts *= 3;
@@ -854,16 +854,19 @@ function startOutsourceEvent(type, deptLabel) {
 }
 function scheduleEvent() {
   const roll = Math.random();
-  if (roll < 0.3) startEvent({ kind: 'watch', name: 'Hurricane Watch', hours: 30,
+  if (roll < 0.25) startEvent({ kind: 'watch', name: 'Hurricane Watch', hours: 30,
     desc: 'Hurricane Dolores inbound. Recall and fuel the fleet before landfall.', banner: 'watch' });
-  else if (roll < 0.45) startEvent({ kind: 'flood', name: 'King Tide Flooding', hours: 18,
+  else if (roll < 0.38) startEvent({ kind: 'flood', name: 'King Tide Flooding', hours: 18,
     desc: 'Streets underwater downtown. Stormwater needs everything with a pump.',
     mult: { 'Stormwater': 4, 'Streets': 1.6 } });
-  else if (roll < 0.62) startEvent({ kind: 'parade', name: 'Beachfront Parade', hours: 12,
-    desc: 'A1A parade today. Streets and Beach on double duty. Bonus for full coverage.',
-    mult: { 'Streets': 2, 'Beach': 2 } });
-  else if (roll < 0.8) startEvent({ kind: 'heat', name: 'Heat Wave', hours: 24,
+  else if (roll < 0.51) startEvent({ kind: 'parade', name: 'Beachfront Parade', hours: 12,
+    desc: 'A1A parade today. Streets and Beach Patrol on double duty. Bonus for full coverage.',
+    mult: { 'Streets': 2, 'Beach Patrol': 2 } });
+  else if (roll < 0.64) startEvent({ kind: 'heat', name: 'Heat Wave', hours: 24,
     desc: 'A/C compressors screaming citywide. Deployed vehicles wear 60% faster.' });
+  else if (roll < 0.77) startEvent({ kind: 'seaweed', name: 'Seaweed Apocalypse', hours: 48,
+    desc: 'A massive sargassum bloom washed ashore. Beach Patrol needs everything they\'ve got, round the clock.',
+    mult: { 'Beach': 3 } });
   else startEvent({ kind: 'scrap', name: 'Scrap Prices Spike', hours: 24,
     desc: 'Auction values up 20% today. Good day to offload the junkers.' });
 }
@@ -1189,9 +1192,14 @@ function sideCity() {
       <div class="kv"><span>${m.label}</span><b>${Math.min(m.progress, m.target).toLocaleString()} / ${m.target.toLocaleString()}</b></div>
       <div class="note">Reward ${money(m.reward)} · due by day ${m.dueDay}</div>
     `).join('')}` : '';
+  let daysToNext = null;
+  if (!S.event) daysToNext = earlyEventQueue.length ? earlyEventQueue[0].minDay - S.day : S.nextEventDay - S.day;
+  const upcomingHTML = (daysToNext !== null && daysToNext >= 0 && daysToNext <= 2)
+    ? `<div class="note warn" style="margin-top:10px">Word from City Hall: something's brewing. Keep the fleet ready over the next couple days.</div>` : '';
   return `${onboardHTML}
     <div class="kv"><span>Overall fleet rating</span><b class="${avg < 40 ? 'bad' : avg < 65 ? 'warn' : 'good'}">${Math.round(avg)}%</b></div>
     <div class="note">Weekly allocation scales with the rating. Keep departments covered by deploying their vehicles.</div>
+    ${upcomingHTML}
     ${Object.keys(DEPTS).map(d => {
       const deployed = S.vehicles.filter(v => v.dept === d && v.status === 'deployed').length;
       const owned = S.vehicles.filter(v => v.dept === d).length;
