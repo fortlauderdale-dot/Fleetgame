@@ -221,9 +221,9 @@ beach.rotation.x = -Math.PI / 2; beach.position.set(0, 0.02, 61);
 scene.add(beach);
 preferFile('sand', beach.material.map).then(t => { beach.material.map = t; beach.material.needsUpdate = true; });
 
-const water = new THREE.Mesh(new THREE.PlaneGeometry(160, 70),
+const water = new THREE.Mesh(new THREE.PlaneGeometry(160, 22),
   new THREE.MeshStandardMaterial({ map: waterTexture(10), roughness: 0.35, metalness: 0.2 }));
-water.rotation.x = -Math.PI / 2; water.position.set(0, 0.05, 105);
+water.rotation.x = -Math.PI / 2; water.position.set(0, 0.05, 83);
 scene.add(water);
 preferFile('water', water.material.map).then(t => { water.material.map = t; water.material.needsUpdate = true; });
 
@@ -297,10 +297,9 @@ for (const [x, z] of [[-68, -44], [68, -44], [-68, 44], [30, 44], [0, -2]]) {
   const p = buildLightPole(); p.position.set(x, 0, z); p.rotation.y = Math.random() * 6;
   scene.add(p); poles.push(p);
 }
-for (let i = 0; i < 14; i++) {
+for (let i = 0; i < 12; i++) {
   const palm = buildPalm(6 + Math.random() * 3);
   palm.position.set(-80 + Math.random() * 160, 0, 50 + Math.random() * 4);
-  if (i > 9) palm.position.set(-(78 + Math.random() * 6), 0, -40 + Math.random() * 70);
   palm.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(palm);
 }
