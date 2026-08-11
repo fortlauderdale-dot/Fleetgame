@@ -1040,6 +1040,7 @@ function raccoonSteal() {
   S.raidsLost++;
   toast(`Raccoon raid: ${money(-loss)} and fuel gone.`, 'bad');
   log(RC_LINES_STEAL[(Math.random() * RC_LINES_STEAL.length) | 0], 'flavor');
+  showRaccoonPopup('assets/img/raccoon-steal.png', 'Caught red-pawed. Again.');
   refreshUI();
 }
 function raccoonShoo() {
@@ -1050,6 +1051,7 @@ function raccoonShoo() {
   S.missions.filter(m => m.kind === 'raidCount').forEach(m => m.progress++);
   checkMissionsComplete();
   log(RC_LINES_SHOO[(Math.random() * RC_LINES_SHOO.length) | 0], 'flavor');
+  showRaccoonPopup('assets/img/raccoon-caught.png', "Hey! Stop! Who's there?!");
   if (S.raidsFoiled === 5) { spend(-5000, 'Council "Vigilance Award"'); log('Council issued a Vigilance Award for raccoon deterrence. There was a small plaque.', 'flavor'); }
   r.phase = 'flee'; r.t = 0;
   r.from = r.group.position.clone();
@@ -1167,6 +1169,16 @@ function select(v) {
 function openPanel(id) { $(id).classList.add('open'); }
 function closePanel(id) { $(id).classList.remove('open'); }
 document.querySelectorAll('.x').forEach(b => b.onclick = () => closePanel(b.dataset.close));
+let raccoonPopupTimer = null;
+function showRaccoonPopup(src, caption) {
+  $('raccoonPopupImg').src = src;
+  $('raccoonPopupCap').textContent = caption;
+  const el = $('raccoonPopup');
+  el.style.display = 'flex';
+  clearTimeout(raccoonPopupTimer);
+  raccoonPopupTimer = setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+$('raccoonPopup').onclick = () => { $('raccoonPopup').style.display = 'none'; clearTimeout(raccoonPopupTimer); };
 
 const STATUS_LABEL = { parked: 'Parked', deployed: 'In service', returning: 'Returning', toFuel: 'To pumps',
   fueling: 'Fueling', toMaint: 'To garage', maint: 'In garage', down: 'Out of service', arriving: 'Arriving',
