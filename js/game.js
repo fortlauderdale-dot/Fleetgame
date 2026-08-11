@@ -204,8 +204,8 @@ const skyDay = new THREE.Color(0x9fd7e0), skyDusk = new THREE.Color(0xe8955c),
       skyNight = new THREE.Color(0x101a2a), skyStorm = new THREE.Color(0x4a545c);
 
 // ground layers
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400),
-  new THREE.MeshStandardMaterial({ map: grassTexture(20), roughness: 1 }));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 220),
+  new THREE.MeshStandardMaterial({ map: grassTexture(11), roughness: 1 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true;
 scene.add(ground);
 
@@ -299,9 +299,8 @@ for (const [x, z] of [[-68, -44], [68, -44], [-68, 44], [30, 44], [0, -2]]) {
 }
 for (let i = 0; i < 14; i++) {
   const palm = buildPalm(6 + Math.random() * 3);
-  const side = i % 2 ? 1 : -1;
   palm.position.set(-80 + Math.random() * 160, 0, 50 + Math.random() * 4);
-  if (i > 9) palm.position.set(side * (78 + Math.random() * 6), 0, -40 + Math.random() * 70);
+  if (i > 9) palm.position.set(-(78 + Math.random() * 6), 0, -40 + Math.random() * 70);
   palm.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(palm);
 }
