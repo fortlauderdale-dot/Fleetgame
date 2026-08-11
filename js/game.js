@@ -145,6 +145,7 @@ function checkMissionsComplete() {
     toast(`Contract complete! ${money(m.reward)}`, 'money');
     confettiBurst(); sfxMilestone();
     LIFE.contractsCompleted = (LIFE.contractsCompleted || 0) + 1;
+    S.contractsThisShift++;
     checkContractAwards();
     saveLifetime();
     return false;
@@ -167,7 +168,7 @@ const S = {
   bays: 2, upgrades: {},
   event: null, nextEventDay: 5,
   raccoon: null, raidsFoiled: 0, raidsLost: 0,
-  serviceTotal: 0, bailouts: 0, over: false,
+  serviceTotal: 0, bailouts: 0, over: false, contractsThisShift: 0,
   log: [], _hit: new Set(), playerName: 'Fleet Manager', missions: [], pumpCount: 3,
 };
 for (const d in DEPTS) { S.sat[d] = 70; S.demand[d] = DEPTS[d].base; }
@@ -858,6 +859,7 @@ function dayTick() {
     }
   }
   checkMilestones();
+  checkWinConditions();
   S.missions.filter(m => m.kind === 'satStreak').forEach(m => {
     if (S.sat[m.dept] >= 70) m.progress++; else m.progress = 0;
   });
@@ -1113,6 +1115,45 @@ function gameOver() {
     <button class="wo-btn" onclick="location.reload()">Try Again</button>
   </div></div>`;
   document.body.appendChild(div);
+}
+const WIN_TARGETS = { day: 90, dayRating: 75, service: 25000, contracts: 15, budget: 1000000, fleet: SLOTS.length };
+function winGame(reason) {
+  S.over = true; S.speed = 0;
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  const avgRating = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
+  const div = document.createElement('div');
+  div.id = 'title';
+  div.innerHTML = `<div class="wo"><div class="wo-stripe"></div><div class="wo-body">
+    <div class="wo-eyebrow">City of Fort Lauderdale · Commendation</div>
+    <h1>Fleet <em>Chief</em></h1>
+    <div class="wo-sub">${reason}</div>
+    <div class="wo-fields">
+      <div><b>Days survived:</b> ${S.day}</div><div><b>Service delivered:</b> ${Math.round(S.serviceTotal).toLocaleString()} pts</div>
+      <div><b>Fleet rating:</b> ${Math.round(avgRating)}%</div><div><b>Vehicles owned:</b> ${S.vehicles.length}</div>
+      <div><b>Contracts completed:</b> ${S.contractsThisShift}</div><div><b>Budget:</b> ${money(S.budget)}</div>
+    </div>
+    <button class="wo-btn" onclick="location.reload()">Play Again</button>
+  </div></div>`;
+  document.body.appendChild(div);
+}
+function checkWinConditions() {
+  if (S.over) return;
+  const avgRating = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
+  if (S.day >= WIN_TARGETS.day && avgRating >= WIN_TARGETS.dayRating) {
+    return winGame(`Ninety days in with the fleet rating holding at ${Math.round(avgRating)}%. The city renewed Fleet Services' contract without a second thought.`);
+  }
+  if (S.serviceTotal >= WIN_TARGETS.service) {
+    return winGame(`${Math.round(S.serviceTotal).toLocaleString()} service points delivered this shift. Every department in the city runs because of this fleet.`);
+  }
+  if (S.contractsThisShift >= WIN_TARGETS.contracts) {
+    return winGame(`${S.contractsThisShift} contracts completed this shift. City Hall stopped double-checking your invoices a while ago.`);
+  }
+  if (S.budget >= WIN_TARGETS.budget) {
+    return winGame(`Budget grew to ${money(S.budget)}. Fleet Services went from a cost center to the department everyone wants to be like.`);
+  }
+  if (S.vehicles.length >= WIN_TARGETS.fleet) {
+    return winGame(`Every parking spot in the yard is full. ${S.vehicles.length} vehicles under one roof, and somehow still room for one more raccoon.`);
+  }
 }
 
 /* ============================== UI RENDER ============================== */
