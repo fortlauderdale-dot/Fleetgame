@@ -161,7 +161,7 @@ const S = {
   vehicles: [],
   nextNum: {},
   stations: [
-    { name: 'Fleet Yard',    res: 3800, cap: 5000, auto: false },
+    { name: 'Fleet Yard',    res: 7600, cap: 18000, auto: false },
   ],
   sat: {}, demand: {},
   bays: 2, upgrades: {},
