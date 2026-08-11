@@ -204,7 +204,7 @@ const skyDay = new THREE.Color(0x9fd7e0), skyDusk = new THREE.Color(0xe8955c),
       skyNight = new THREE.Color(0x101a2a), skyStorm = new THREE.Color(0x4a545c);
 
 // ground layers
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(180, 220),
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 180),
   new THREE.MeshStandardMaterial({ map: grassTexture(11), roughness: 1 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true;
 scene.add(ground);
@@ -215,13 +215,13 @@ yard.rotation.x = -Math.PI / 2; yard.receiveShadow = true;
 scene.add(yard);
 preferFile('asphalt', yard.material.map).then(t => { yard.material.map = t; yard.material.needsUpdate = true; });
 
-const beach = new THREE.Mesh(new THREE.PlaneGeometry(180, 22),
+const beach = new THREE.Mesh(new THREE.PlaneGeometry(160, 22),
   new THREE.MeshStandardMaterial({ map: sandTexture(14), roughness: 1 }));
 beach.rotation.x = -Math.PI / 2; beach.position.set(0, 0.02, 61);
 scene.add(beach);
 preferFile('sand', beach.material.map).then(t => { beach.material.map = t; beach.material.needsUpdate = true; });
 
-const water = new THREE.Mesh(new THREE.PlaneGeometry(180, 70),
+const water = new THREE.Mesh(new THREE.PlaneGeometry(160, 70),
   new THREE.MeshStandardMaterial({ map: waterTexture(10), roughness: 0.35, metalness: 0.2 }));
 water.rotation.x = -Math.PI / 2; water.position.set(0, 0.05, 105);
 scene.add(water);
