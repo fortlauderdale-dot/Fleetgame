@@ -1587,7 +1587,7 @@ $('startBtn').onclick = () => {
   ensureAudio();
   LIFE.gamesPlayed++; saveLifetime();
   beginPlay();
-  log('Shift started. Twelve units on the lot, half of them held together with hope.', 'flavor');
+  log('Shift started. Seven units on the lot, two of them held together with hope.', 'flavor');
   log('Anthony says the sweeper "sounds haunted." Noted.', 'flavor');
   toast('Welcome, boss. Deploy vehicles to cover departments. Watch the fuel.', '');
 };
