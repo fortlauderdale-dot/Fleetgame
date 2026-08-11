@@ -146,9 +146,10 @@ export function buildPalm(h = 7) {
     const frond = makeFrond(length, width, mat);
 
     frond.position.set(0, 0, 0);
-    frond.rotation.z = a - Math.PI / 2 + Math.PI;
-    frond.rotation.x = -0.15 - Math.random() * 0.35;
-    frond.rotation.y = 0;
+    frond.rotation.order = 'YXZ';
+    frond.rotation.x = -1.05 - Math.random() * 0.35;
+    frond.rotation.y = a;
+    frond.rotation.z = 0;
     crown.add(frond);
   }
 
