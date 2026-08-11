@@ -1271,14 +1271,6 @@ function sideCity() {
     ${[['deploy','Deploy a vehicle'],['fuel','Refuel a vehicle'],['garage','Visit the Garage tab'],['city','Check the City tab']]
       .map(([id,label]) => `<div class="kv"><span>${LIFE.onboardSteps[id] ? '✅' : '⬜'} ${label}</span></div>`).join('')}
     <div style="height:1px;background:var(--line);margin:10px 0"></div>`;
-  const nm = nextMilestone();
-  const nmHTML = nm ? `<div class="kv"><span>Next milestone</span><b>${Math.min(nm.progress(), nm.target).toLocaleString()} / ${nm.target.toLocaleString()}</b></div>` : '';
-  const missionHTML = S.missions.length ? `
-    <div class="note" style="margin-top:14px">Active Contracts</div>
-    ${S.missions.map(m => `
-      <div class="kv"><span>${m.label}</span><b>${Math.min(m.progress, m.target).toLocaleString()} / ${m.target.toLocaleString()}</b></div>
-      <div class="note">Reward ${money(m.reward)} · due by day ${m.dueDay}</div>
-    `).join('')}` : '';
   let daysToNext = null;
   if (!S.event) daysToNext = earlyEventQueue.length ? earlyEventQueue[0].minDay - S.day : S.nextEventDay - S.day;
   const upcomingHTML = (daysToNext !== null && daysToNext >= 0 && daysToNext <= 2)
@@ -1298,11 +1290,9 @@ function sideCity() {
         ${bar('', S.sat[d], 35)}
       </div>`;
     }).join('')}
-    ${missionHTML}
     <div class="kv" style="margin-top:10px"><span>Total service delivered</span><b>${Math.round(S.serviceTotal).toLocaleString()} pts</b></div>
     <div class="note">Deployed vehicles earn service points every hour they're out, more for busier vehicle types, less if their condition drops below 50%. Events can multiply demand, which multiplies what gets earned.</div>
     <div class="kv"><span>Raccoon raids foiled / lost</span><b>${S.raidsFoiled} / ${S.raidsLost}</b></div>
-    ${nmHTML}
     <div class="note" style="margin-top:14px">Career record</div>
     <div class="kv"><span>Rank</span><b class="good">${currentRank().title}</b></div>
     <div class="kv"><span>Top Fleet Rating (all-time)</span><b class="good">${Math.round(LIFE.bestRating)}%</b></div>
@@ -1311,8 +1301,20 @@ function sideCity() {
     <div class="kv"><span>Shifts worked</span><b>${LIFE.gamesPlayed}</b></div>
     ${LIFE.badges.length ? `<div class="note" style="margin-top:10px">Milestones earned: ${LIFE.badges.length}</div>` : ''}`;
 }
+function sideQuests() {
+  const nm = nextMilestone();
+  const nmHTML = nm ? `<div class="kv"><span>Next milestone</span><b>${Math.min(nm.progress(), nm.target).toLocaleString()} / ${nm.target.toLocaleString()}</b></div>` : '';
+  const missionHTML = S.missions.length ? `
+    ${S.missions.map(m => `
+      <div class="kv"><span>${m.label}</span><b>${Math.min(m.progress, m.target).toLocaleString()} / ${m.target.toLocaleString()}</b></div>
+      <div class="note">Reward ${money(m.reward)} · due by day ${m.dueDay}</div>
+    `).join('')}` : '<div class="note">No active contracts right now.</div>';
+  return `<div class="note">Active Contracts</div>
+    ${missionHTML}
+    ${nmHTML}`;
+}
 function refreshSide() {
-  const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City / Quests', log: 'Dispatch Log' };
+  const titles = { vehicle: 'Vehicle', shop: 'Dealership', fuel: 'Fuel Stations', garage: 'Garage', city: 'City', quests: 'Quests', log: 'Dispatch Log' };
   $('sideTitle').textContent = titles[sideMode];
   const body = $('sideBody');
   if (sideMode === 'vehicle') body.innerHTML = selected ? sideVehicle(selected) : '<div class="note">Tap a vehicle in the yard or the roster.</div>';
@@ -1320,6 +1322,7 @@ function refreshSide() {
   if (sideMode === 'fuel') body.innerHTML = sideFuel();
   if (sideMode === 'garage') { body.innerHTML = sideGarage(); markOnboard('garage'); }
   if (sideMode === 'city') { body.innerHTML = sideCity(); markOnboard('city'); }
+  if (sideMode === 'quests') body.innerHTML = sideQuests();
   if (sideMode === 'log') body.innerHTML = sideLog();
   body.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
     const v = selected; if (!v) return;
