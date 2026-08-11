@@ -215,13 +215,13 @@ yard.rotation.x = -Math.PI / 2; yard.receiveShadow = true;
 scene.add(yard);
 preferFile('asphalt', yard.material.map).then(t => { yard.material.map = t; yard.material.needsUpdate = true; });
 
-const beach = new THREE.Mesh(new THREE.PlaneGeometry(400, 22),
+const beach = new THREE.Mesh(new THREE.PlaneGeometry(220, 22),
   new THREE.MeshStandardMaterial({ map: sandTexture(14), roughness: 1 }));
 beach.rotation.x = -Math.PI / 2; beach.position.set(0, 0.02, 61);
 scene.add(beach);
 preferFile('sand', beach.material.map).then(t => { beach.material.map = t; beach.material.needsUpdate = true; });
 
-const water = new THREE.Mesh(new THREE.PlaneGeometry(400, 70),
+const water = new THREE.Mesh(new THREE.PlaneGeometry(220, 70),
   new THREE.MeshStandardMaterial({ map: waterTexture(10), roughness: 0.35, metalness: 0.2 }));
 water.rotation.x = -Math.PI / 2; water.position.set(0, 0.05, 105);
 scene.add(water);
