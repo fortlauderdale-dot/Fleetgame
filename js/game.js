@@ -1079,9 +1079,9 @@ function updateRaccoon(dt) {
     r.group.rotation.y += dt * 1.5;
     r.group.position.y = Math.abs(Math.sin(r.t * 14)) * 0.1;
     if (r.t > 3) {
-      raccoonSteal();
       r.phase = 'out'; r.t = 0;
       r.from = r.group.position.clone(); r.to = dumpster.position.clone(); r.dur = 5;
+      try { raccoonSteal(); } catch (e) { console.error('raccoonSteal failed:', e); }
     }
   }
 }
@@ -1166,9 +1166,10 @@ function closePanel(id) { $(id).classList.remove('open'); }
 document.querySelectorAll('.x').forEach(b => b.onclick = () => closePanel(b.dataset.close));
 let raccoonPopupTimer = null;
 function showRaccoonPopup(src, caption) {
-  $('raccoonPopupImg').src = src;
-  $('raccoonPopupCap').textContent = caption;
-  const el = $('raccoonPopup');
+  const el = $('raccoonPopup'), img = $('raccoonPopupImg'), cap = $('raccoonPopupCap');
+  if (!el || !img || !cap) { console.warn('Raccoon popup elements missing, skipping popup.'); return; }
+  img.src = src;
+  cap.textContent = caption;
   el.style.display = 'flex';
   clearTimeout(raccoonPopupTimer);
   raccoonPopupTimer = setTimeout(() => { el.style.display = 'none'; }, 3500);
