@@ -1491,6 +1491,7 @@ function simMinute() {
 
 function updateMovement(dt) {
   const spd = 11 * Math.max(1, S.speed * 0.8);
+  let nearGate = false;
   for (const v of S.vehicles) {
     if (!v.path || !v.mesh.visible) continue;
     const p = v.path;
@@ -1498,6 +1499,7 @@ function updateMovement(dt) {
     const pos = v.mesh.position;
     const dir = new THREE.Vector3().subVectors(target, pos); dir.y = 0;
     const dist = dir.length();
+    if (Math.hypot(pos.x - gate.position.x, pos.z - gate.position.z) < 10) nearGate = true;
     if (dist < 0.4) {
       p.i++;
       if (p.i >= p.pts.length) { const cb = p.onArrive; v.path = null; v.mesh.rotation.y = Math.PI / 2; cb && cb(); continue; }
@@ -1511,6 +1513,7 @@ function updateMovement(dt) {
     if (v.mesh.userData.wheels) v.mesh.userData.wheels.forEach(w => w.children.forEach(c => c.rotation.z -= step * 1.6));
     if (v.mesh.userData.brushes) v.mesh.userData.brushes.forEach(b => b.rotation.y += dt * 8);
   }
+  gate.userData.setOpen(nearGate);
 }
 
 function updateSky() {
@@ -1541,6 +1544,7 @@ function animate(now) {
     while (minuteAcc >= 1 && guard++ < 200) { minuteAcc -= 1; simMinute(); }
     updateMovement(dt);
     updateRaccoon(dt);
+    gate.userData.update(dt);
     updateSky();
     if (rain.visible) {
       const arr = rain.geometry.attributes.position.array;
