@@ -78,7 +78,7 @@ export function buildSedan(color = 0xf2f2ee) {
   const body = box(4.0, 0.75, 1.8, mat); body.position.y = 0.85;
   const top = box(2.1, 0.7, 1.65, mat); top.position.set(-0.2, 1.55, 0);
   const glass = box(2.12, 0.4, 1.5, GLASS()); glass.position.set(-0.2, 1.5, 0);
-  const stripe = box(4.02, 0.18, 1.82, M(0x17948f)); stripe.position.y = 0.7;
+  const stripe = box(4.02, 0.18, 1.82, M(0x2952cc)); stripe.position.y = 0.7;
   g.add(body, top, glass, stripe);
   addWheels(g, [[1.35, 0.95], [1.35, -0.95], [-1.35, 0.95], [-1.35, -0.95]], 0.46, 0.36);
   return g;
@@ -177,9 +177,9 @@ export function buildEVVan(color = 0xf2f2ee) {
 
 export function buildPumpTruck(color = 0xf2f2ee) {
   const g = new THREE.Group();
-  const white = M(color), teal = M(0x0e6d7c);
+  const white = M(color),;
   const c = cab(1.6, 1.6, 2.1, white); c.position.set(2.1, 0.65, 0);
-  const tank = cyl(1.05, 1.05, 3.6, teal, 16); tank.rotation.z = Math.PI / 2; tank.position.set(-0.5, 1.85, 0);
+  const tank = cyl(1.05, 1.05, 3.6, M(0x2952cc), 16); tank.rotation.z = Math.PI / 2; tank.position.set(-0.5, 1.85, 0);
   const hose = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.12, 8, 16), M(0x2c3237));
   hose.position.set(-2.4, 1.9, 0); hose.rotation.y = Math.PI / 2;
   const lb = lightBar(1.0); lb.position.set(2.1, 2.2, 0);
