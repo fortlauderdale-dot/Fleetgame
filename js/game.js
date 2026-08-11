@@ -287,7 +287,7 @@ layoutFuelSpots();
 rebuildCanopy();
 
 const trailer = buildAdminTrailer(); trailer.position.set(56, 0, -40); scene.add(trailer);
-const gate = buildGate(); gate.position.set(70, 0, 20); gate.rotation.y = Math.PI / 2; scene.add(gate);
+const gate = buildGate(15); gate.position.set(70, 0, 20); gate.rotation.y = Math.PI / 2; scene.add(gate);
 const dumpster = buildDumpster(); dumpster.position.set(-64, 0, 40); dumpster.rotation.y = 0.5; scene.add(dumpster);
 
 const poles = [];
