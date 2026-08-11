@@ -177,7 +177,7 @@ export function buildEVVan(color = 0xf2f2ee) {
 
 export function buildPumpTruck(color = 0xf2f2ee) {
   const g = new THREE.Group();
-  const white = M(color),;
+  const white = M(color);
   const c = cab(1.6, 1.6, 2.1, white); c.position.set(2.1, 0.65, 0);
   const tank = cyl(1.05, 1.05, 3.6, M(0x2952cc), 16); tank.rotation.z = Math.PI / 2; tank.position.set(-0.5, 1.85, 0);
   const hose = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.12, 8, 16), M(0x2c3237));
