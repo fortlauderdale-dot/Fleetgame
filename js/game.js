@@ -1061,7 +1061,7 @@ function raccoonShoo() {
 }
 function updateRaccoon(dt) {
   const r = S.raccoon;
-  if (!r) { if (S.speed > 0) maybeCheckRaccoonTimer(dt); return; }
+  if (!r) return;
   if (S.speed === 0) return;
   r.t += dt;
   const legs = (m) => { const b = Math.sin(performance.now() / 60) * 0.25; m.userData.legs.forEach((l, i) => l.rotation.x = i % 2 ? b : -b); };
@@ -1084,11 +1084,6 @@ function updateRaccoon(dt) {
       r.from = r.group.position.clone(); r.to = dumpster.position.clone(); r.dur = 5;
     }
   }
-}
-let rcTimer = 0;
-function maybeCheckRaccoonTimer(dt) {
-  rcTimer += dt;
-  if (rcTimer > 20) { rcTimer = 0; maybeSpawnRaccoon(); }
 }
 
 /* ============================== GAME OVER ============================== */
@@ -1482,9 +1477,12 @@ let started = false;
 let last = performance.now(), minuteAcc = 0, hourAcc = 0, uiAcc = 0;
 const MIN_PER_SEC = 10;
 
+let rcMinuteAcc = 0;
 function simMinute() {
   S.minutes += 1;
   hourAcc += 1;
+  rcMinuteAcc += 1;
+  if (rcMinuteAcc >= 200) { rcMinuteAcc = 0; maybeSpawnRaccoon(); }
   if (hourAcc >= 60) { hourAcc = 0; hourTick(); maybeTeamLine(); checkYardRecovered(); autoFuelCheck(); refreshUI(); }
   if (S.minutes >= 24 * 60) { S.minutes -= 24 * 60; S.day++; dayTick(); refreshUI(); }
   if (S.event) { S.event.left -= 1; if (S.event.left <= 0) endEvent(); }
