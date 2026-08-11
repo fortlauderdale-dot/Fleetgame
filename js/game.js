@@ -1499,7 +1499,7 @@ function updateMovement(dt) {
     const pos = v.mesh.position;
     const dir = new THREE.Vector3().subVectors(target, pos); dir.y = 0;
     const dist = dir.length();
-    if (Math.hypot(pos.x - gate.position.x, pos.z - gate.position.z) < 10) nearGate = true;
+    if (Math.hypot(pos.x - gate.position.x, pos.z - gate.position.z) < 20) nearGate = true;
     if (dist < 0.4) {
       p.i++;
       if (p.i >= p.pts.length) { const cb = p.onArrive; v.path = null; v.mesh.rotation.y = Math.PI / 2; cb && cb(); continue; }
