@@ -288,6 +288,8 @@ rebuildCanopy();
 
 const trailer = buildAdminTrailer(); trailer.position.set(56, 0, -40); scene.add(trailer);
 const gate = buildGate(15); gate.position.set(70, 0, 20); gate.rotation.y = Math.PI / 2; scene.add(gate);
+const fenceE1 = buildFence(19); fenceE1.rotation.y = Math.PI / 2; fenceE1.position.set(70, 0, 39.5); scene.add(fenceE1);
+const fenceE2 = buildFence(59); fenceE2.rotation.y = Math.PI / 2; fenceE2.position.set(70, 0, -19.5); scene.add(fenceE2);
 const dumpster = buildDumpster(); dumpster.position.set(-64, 0, 40); dumpster.rotation.y = 0.5; scene.add(dumpster);
 
 const poles = [];
@@ -324,6 +326,9 @@ rain.visible = false; scene.add(rain);
 /* ============================== VEHICLES ============================== */
 const GATE_OUT = new THREE.Vector3(84, 0, 20);
 const LANE_Z = 20;
+const LANE_OFFSET = 3.5;
+const LANE_IN = LANE_Z + LANE_OFFSET;
+const LANE_OUT = LANE_Z - LANE_OFFSET;
 let vidSeq = 1;
 
 function freeSlot() { return SLOTS.find(s => !s.taken) || null; }
@@ -369,8 +374,8 @@ function parkAt(v, slot, snap = false) {
 function setPath(v, pts, onArrive) {
   v.path = { pts: pts.map(p => new THREE.Vector3(p.x, 0, p.z ?? p.y ?? 0)), i: 0, onArrive };
 }
-function laneRoute(from, to) { // travel via the main lane at z=LANE_Z
-  return [{ x: from.x, z: LANE_Z }, { x: to.x, z: LANE_Z }, { x: to.x, z: to.z }];
+function laneRoute(from, to, laneZ = LANE_Z) { // travel via the given lane, defaults to the center lane
+  return [{ x: from.x, z: laneZ }, { x: to.x, z: laneZ }, { x: to.x, z: to.z }];
 }
 function releaseSlot(v) { if (v.slot) { v.slot.taken = null; v.slot = null; } }
 function releaseSpot(v) { if (v.spot) { v.spot.taken = null; v.spot = null; } }
@@ -547,7 +552,7 @@ function deploy(v) {
   v.status = 'deployed'; v._ranDry = false; v._shiftTimer = 0;
   const from = { x: v.mesh.position.x, z: v.mesh.position.z };
   releaseSlot(v);
-  setPath(v, [...laneRoute(from, { x: GATE_OUT.x, z: GATE_OUT.z })], () => { v.hidden = true; v.mesh.visible = false; });
+  setPath(v, [...laneRoute(from, { x: GATE_OUT.x, z: GATE_OUT.z }, LANE_OUT)], () => { v.hidden = true; v.mesh.visible = false; });
   markOnboard('deploy');
   S.missions.filter(m => m.kind === 'deployCount').forEach(m => m.progress++);
   checkMissionsComplete();
@@ -580,7 +585,7 @@ function recall(v) {
 function arriveHome(v, dest, nextStatus, onDone) {
   v.hidden = false; v.mesh.visible = true;
   v.mesh.position.set(GATE_OUT.x, 0, GATE_OUT.z);
-  setPath(v, laneRoute({ x: GATE_OUT.x, z: GATE_OUT.z }, dest), () => { v.status = nextStatus; onDone && onDone(); refreshUI(); });
+  setPath(v, laneRoute({ x: GATE_OUT.x, z: GATE_OUT.z }, dest, LANE_IN), () => { v.status = nextStatus; onDone && onDone(); refreshUI(); });
 }
 function sendRefuel(v) {
   if (v.status !== 'parked' || v.fuel > 95) return;
@@ -653,7 +658,7 @@ function buyVehicle(type) {
   v.mesh.position.set(GATE_OUT.x, 0, GATE_OUT.z);
   parkAt(v, slot);
   v.status = 'arriving';
-  setPath(v, laneRoute({ x: GATE_OUT.x, z: GATE_OUT.z }, slot), () => { v.status = 'parked'; refreshUI(); });
+  setPath(v, laneRoute({ x: GATE_OUT.x, z: GATE_OUT.z }, slot, LANE_IN), () => { v.status = 'parked'; refreshUI(); });
   log(`Factory-fresh ${t.label} delivered: ${v.name}.`);
   refreshUI();
 }
