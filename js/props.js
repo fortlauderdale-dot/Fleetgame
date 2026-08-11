@@ -147,7 +147,7 @@ export function buildPalm(h = 7) {
 
     frond.position.set(0, 0, 0);
     frond.rotation.order = 'YXZ';
-    frond.rotation.x = -1.05 - Math.random() * 0.35;
+    frond.rotation.x = -1.25 - Math.random() * 0.35;
     frond.rotation.y = a;
     frond.rotation.z = 0;
     crown.add(frond);
