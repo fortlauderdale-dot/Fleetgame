@@ -95,7 +95,7 @@ function checkMilestones() {
       S._hit.add(m.id);
       if (!LIFE.badges.includes(m.id)) { LIFE.badges.push(m.id); saveLifetime(); }
       toast(m.text, '');
-      log(`Milestone: ${m.text}`, 'flavor');
+      log(`Milestone: ${m.text}`, 'event');
       confettiBurst(); sfxMilestone();
     }
   }
@@ -535,7 +535,7 @@ setInterval(() => {
   if (!started || !S.log.length) return;
   tickerIdx = (tickerIdx + 1) % S.log.length;
   const entry = S.log[S.log.length - 1 - (tickerIdx % Math.min(5, S.log.length))];
-  const cls = entry.type === 'money' ? 'good' : entry.type === 'flavor' ? 'warn' : '';
+  const cls = entry.type === 'money' ? 'good' : entry.type === 'flavor' ? 'warn' : entry.type === 'event' ? 'info' : '';
   $('tkText').innerHTML = `<b>DISPATCH:</b> <span class="${cls}">${entry.msg}</span>`;
 }, 6000);
 
@@ -834,7 +834,7 @@ function hourTick() {
     if (st.auto && st.res < st.cap * 0.25 && !st._tanker && S.budget > 12000) {
       S.budget -= 10350;
       st._tanker = 6 * 60;
-      log(`Auto-resupply tanker rolling to ${st.name} (${money(10350)}).`);
+      log(`Auto-resupply tanker rolling to ${st.name} (${money(10350)}).`, 'money');
     }
   }
   if (stormy) for (const st of S.stations) st.res = Math.max(0, st.res - 40); // generators
@@ -842,7 +842,7 @@ function hourTick() {
 function dayTick() {
   for (const d in DEPTS) S.demand[d] = Math.round(DEPTS[d].base * (0.75 + Math.random() * 0.55));
   spend(2400, null); // payroll & utilities, silent
-  log(`Day ${S.day}. Payroll and utilities cleared (${money(2400)}).`);
+  log(`Day ${S.day}. Payroll and utilities cleared (${money(2400)}).`, 'money');
   const avgRating = Object.values(S.sat).reduce((a, b) => a + b, 0) / 5;
   if (avgRating > LIFE.bestRating) LIFE.bestRating = avgRating;
   if (S.day > LIFE.bestDay) LIFE.bestDay = S.day;
@@ -1260,7 +1260,7 @@ function sideGarage() {
 function sideLog() {
   if (!S.log.length) return '<div class="note">Nothing logged yet.</div>';
   return S.log.slice().reverse().map(line => {
-    const cls = line.type === 'money' ? 'good' : line.type === 'flavor' ? 'warn' : '';
+    const cls = line.type === 'money' ? 'good' : line.type === 'flavor' ? 'warn' : line.type === 'event' ? 'info' : '';
     return `<div class="kv ${cls}" style="border-bottom:1px dashed #3a434c66">${line.msg}</div>`;
   }).join('');
 }
@@ -1587,7 +1587,7 @@ $('startBtn').onclick = () => {
   ensureAudio();
   LIFE.gamesPlayed++; saveLifetime();
   beginPlay();
-  log('Shift started. Seven units on the lot, two of them held together with hope.', 'flavor');
+  log('Shift started. Seven units on the lot, two of them held together with hope.', 'event');
   log('Anthony says the sweeper "sounds haunted." Noted.', 'flavor');
   toast('Welcome, boss. Deploy vehicles to cover departments. Watch the fuel.', '');
 };
