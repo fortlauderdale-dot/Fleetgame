@@ -75,13 +75,6 @@ function buildDomOnce() {
 function showModal(html) { overlayBody.innerHTML = html; overlay.style.display = 'flex'; }
 function hideModal() { overlay.style.display = 'none'; }
 
-function setSpeedButtons(enabled) {
-  document.querySelectorAll('#speedCtl button').forEach(b => {
-    b.disabled = !enabled;
-    b.style.opacity = enabled ? '' : '0.35';
-    b.style.pointerEvents = enabled ? '' : 'none';
-  });
-}
 function setSpeed(v) {
   S.speed = v;
   document.querySelectorAll('#speedCtl button').forEach(b => b.classList.toggle('on', +b.dataset.sp === v));
