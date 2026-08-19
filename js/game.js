@@ -6,7 +6,7 @@ import { asphaltTexture, sandTexture, grassTexture, waterTexture, preferFile } f
 import { BUILDERS, buildRaccoon } from './vehicles.js';
 import { buildGarage, buildFuelCanopy, buildPalm, buildDumpster, buildLightPole, buildAdminTrailer, buildGate, buildFence } from './props.js';
 
-/* ============================== DATA ============================== */
+// ============================== Data ============================== //
 const TYPES = {
   pickup:     { label: 'Utility Truck',   dept: 'Public Works', price: 38000,  fph: 2, wph: 0.5,  sph: 6,  gal: 0.35, blurb: 'General-purpose runner. Cheap, quick, decent for small jobs and hauling gear.' },
   sedan:      { label: 'Inspector Sedan', dept: 'Streets',      price: 26000,  fph: 1, wph: 0.35, sph: 4,  gal: 0.25, blurb: 'Sips fuel. Good for light duty and inspections, not built for heavy work.' },
@@ -44,7 +44,8 @@ function isUpgradeUnlocked(key) {
   return true;
 }
 const money = (n) => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
-/* ============================== LIFETIME (persists across shifts) ============================== */
+
+// ============================== Lifetime (persists across shifts) ============================== //
 const LIFETIME_KEY = 'fleetgame-lifetime-v1';
 const SAVE_KEY = 'fleetgame-save-v1';
 function loadLifetime() {
@@ -153,7 +154,7 @@ function checkMissionsComplete() {
   ensureMissions();
 }
 
-/* ============================== STATE ============================== */
+// ============================== State ============================== //
 const S = {
   budget: 300000,
   minutes: 6 * 60, // day starts 06:00
@@ -173,7 +174,7 @@ const S = {
 };
 for (const d in DEPTS) { S.sat[d] = 70; S.demand[d] = DEPTS[d].base; }
 
-/* ============================== SCENE ============================== */
+// ============================== Scene / Background ============================== //
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
@@ -322,7 +323,7 @@ rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
 const rain = new THREE.Points(rainGeo, new THREE.PointsMaterial({ color: 0xbfe4ec, size: 0.35, transparent: true, opacity: 0.7 }));
 rain.visible = false; scene.add(rain);
 
-/* ============================== VEHICLES ============================== */
+// ============================== Vehicles ============================== //
 const GATE_OUT = new THREE.Vector3(84, 0, 20);
 const LANE_Z = 20;
 const LANE_OFFSET = 3.5;
@@ -378,7 +379,8 @@ function laneRoute(from, to, laneZ = LANE_Z) { // travel via the given lane, def
 }
 function releaseSlot(v) { if (v.slot) { v.slot.taken = null; v.slot = null; } }
 function releaseSpot(v) { if (v.spot) { v.spot.taken = null; v.spot = null; } }
-/* ============================== SAVE / LOAD ============================== */
+
+// ============================== Save / Load ============================== //
 function serializeVehicle(v) {
   return { type: v.type, name: v.name, dept: v.dept, fuel: v.fuel, cond: v.cond, age: v.age, status: v.status, workLeft: v.workLeft || 0 };
 }
@@ -465,7 +467,7 @@ for (const [type, fuel, cond] of START) {
   parkAt(v, freeSlotForType(type), true);
 }
 
-/* ============================== UI HELPERS ============================== */
+// ============================== UI Helpers ============================== //
 const $ = (id) => document.getElementById(id);
 
 /* -- sound + confetti (synthesized, no audio files needed) -- */
@@ -544,7 +546,7 @@ function spend(n, why, cls = 'money') {
   if (why) toast(`${money(-n)} — ${why}`, n > 0 ? '' : cls);
 }
 
-/* ============================== ACTIONS ============================== */
+// ============================== Actions ============================== //
 function deploy(v) {
   if (v.status !== 'parked') return;
   if (v.fuel < 8) { toast(`${v.name} is running on fumes. Refuel first.`, 'warn'); return; }
@@ -686,7 +688,7 @@ function buyUpgrade(key) {
   refreshUI();
 }
 
-/* ============================== SIMULATION ============================== */
+// ============================== Simulation ============================== //
 function fieldStation(dept) { return S.stations[DEPTS[dept].station]; }
 const MAYOR_LINES = [
   'The Mayor stopped by the yard and shook Drew\'s hand. Chris got a photo. It\'s already framed.',
@@ -885,7 +887,7 @@ function dayTick() {
   }
   if (S.budget > -50000) S._warned = false;
 }
-/* ============================== EVENTS ============================== */
+// ============================== Events ============================== //
 const earlyEventQueue = [
   { minDay: 4,  start: () => startFloodTeachEvent() },
   { minDay: 9,  start: () => startEvent({ kind: 'watch', name: 'Hurricane Watch', hours: 30,
@@ -991,7 +993,7 @@ function endEvent() {
   S.nextEventDay = S.day + 2 + Math.floor(Math.random() * 3);
 }
 
-/* ============================== RACCOONS ============================== */
+// ============================== Raccoons ============================== //
 const RC_LINES_STEAL = [
   'Raccoon made off with the pump 3 snack drawer AND eighty gallons. Impressive, honestly.',
   'Security footage shows a raccoon operating the fuel nozzle with both hands. Reviewing hiring policy.',
@@ -1086,7 +1088,7 @@ function updateRaccoon(dt) {
   }
 }
 
-/* ============================== GAME OVER ============================== */
+// ============================== Game Over ============================== //
 function gameOver() {
   if (S.bailouts === 0) {
     S.bailouts = 1;
@@ -1153,7 +1155,7 @@ function checkWinConditions() {
   }
 }
 
-/* ============================== UI RENDER ============================== */
+// ============================== UI Render ============================== //
 let selected = null;
 let sideMode = 'city';
 function select(v) {
@@ -1421,7 +1423,7 @@ document.querySelectorAll('#speedCtl button').forEach(b => b.onclick = () => {
 $('deployAllBtn').onclick = deployAll;
 $('recallAllBtn').onclick = recallAll;
 
-/* ============================== INPUT (raycast select) ============================== */
+// ============================== INPUT (raycast select) ============================== //
 const ray = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
 let downAt = null;
@@ -1473,7 +1475,7 @@ function rayGroundPoint() {
   return hit || new THREE.Vector3(1e6, 0, 1e6);
 }
 
-/* ============================== MAIN LOOP ============================== */
+// ============================== Main Loop ============================== //
 let started = false;
 let last = performance.now(), minuteAcc = 0, hourAcc = 0, uiAcc = 0;
 const MIN_PER_SEC = 10;
@@ -1623,7 +1625,7 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-/* ============================== START ============================== */
+// ============================== Start ============================== //
 function beginPlay() {
   $('title').classList.add('hide');
   started = true;
