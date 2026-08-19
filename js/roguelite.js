@@ -82,9 +82,9 @@ function setSpeedButtons(enabled) {
     b.style.pointerEvents = enabled ? '' : 'none';
   });
 }
-function clickSpeed(v) {
-  const btn = document.querySelector(`#speedCtl button[data-sp="${v}"]`);
-  if (btn) btn.click();
+function setSpeed(v) {
+  S.speed = v;
+  document.querySelectorAll('#speedCtl button').forEach(b => b.classList.toggle('on', +b.dataset.sp === v));
 }
 
 /* ---------- meta menu ---------- */
@@ -166,7 +166,7 @@ function startRun() {
 }
 
 function showLevelIntro(n) {
-  clickSpeed(0);
+  setSpeed(0);
   hud.style.display = 'none';
   const def = levelDef(n);
   LVL = { ...def, tickSum: {}, tickCount: 0, elapsed: 0 };
@@ -187,7 +187,7 @@ function runLevel() {
   hideModal();
   hud.style.display = 'block';
   setSpeedButtons(false);
-  clickSpeed(3);
+  setSpeed(3);
 
   const startMs = performance.now();
   let eventFired = false;
@@ -226,7 +226,7 @@ function runLevel() {
 }
 
 function endLevel(passed, forcedReason, avg) {
-  clickSpeed(0);
+  setSpeed(0);
   setSpeedButtons(true);
   hud.style.display = 'none';
 
