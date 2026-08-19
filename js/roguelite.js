@@ -157,9 +157,31 @@ function startRun() {
   hideModal();
   showLevelIntro(1);
 }
-
+function resetFleetForLevel() {
+  for (const v of S.vehicles) {
+    if (v.slot) { v.slot.taken = null; v.slot = null; }
+    if (v.spot) { v.spot.taken = null; v.spot = null; }
+    v.path = null;
+    v.hidden = false;
+    v.mesh.visible = true;
+    v.workLeft = 0;
+    v._shiftTimer = 0;
+    v._ranDry = false;
+    v._breaking = false;
+    v.status = 'parked';
+  }
+  for (const v of S.vehicles) {
+    const slot = freeSlotForType(v.type);
+    if (slot) parkAt(v, slot, true);
+  }
+  S.event = null;
+  const banner = document.getElementById('eventBanner');
+  if (banner) banner.style.display = 'none';
+  for (const d of DEPT_KEYS) S.sat[d] = 65;
+}
 function showLevelIntro(n) {
   setSpeed(0);
+  resetFleetForLevel();
   hud.style.display = 'none';
   const def = levelDef(n);
   LVL = { ...def, tickSum: {}, tickCount: 0, elapsed: 0 };
