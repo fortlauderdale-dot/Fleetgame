@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { asphaltTexture, sandTexture, grassTexture, waterTexture, preferFile } from './textures.js';
 import { BUILDERS, buildRaccoon } from './vehicles.js';
 import { buildGarage, buildFuelCanopy, buildPalm, buildDumpster, buildLightPole, buildAdminTrailer, buildGate, buildFence } from './props.js';
+export const MODE = { roguelite: false };
 
 // ============================== Data ============================== //
 const TYPES = {
@@ -63,7 +64,7 @@ function markOnboard(id) {
   const allDone = Object.values(LIFE.onboardSteps).every(Boolean);
   if (allDone) { LIFE.onboarded = true; toast('Onboarding complete. You know the ropes now.', ''); }
   saveLifetime();
-  refreshUI();
+  if (!MODE.roguelite) saveGame();
 }
 
 const RANKS = [
@@ -1657,5 +1658,10 @@ if (hasSave()) {
   };
   $('startBtn').insertAdjacentElement('afterend', cbtn);
 }
-addEventListener('beforeunload', () => { if (started && !S.over) saveGame(); });
+addEventListener('beforeunload', () => { if (started && !S.over && !MODE.roguelite) saveGame(); });
 $('deployAllBtn').onclick = deployAll;
+export {
+  S, TYPES, DEPTS, UPGRADES,
+  makeVehicle, parkAt, freeSlotForType, rebuildGarage,
+  startEvent, beginPlay, refreshUI, toast, log, money,
+};
